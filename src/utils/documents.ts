@@ -5,7 +5,7 @@ import {
 	TRANSACTION_TYPES_MAP
 } from './mappings';
 import { formatDate, formatToTitleCase } from './formats';
-import { DiscountType } from '@/types/enums';
+import { CashMovementCategory, DiscountType } from '@/types/enums';
 
 export interface ExcelRestockData {
 	'#': number;
@@ -317,11 +317,29 @@ export const generateTopSalesData = (topGroups: any[]) => {
 
 export const generateFinancialData = (
 	cashMovements: CashMovement[],
-	bankTransferMovements: BankTransferMovement[]
+	bankTransferMovements: BankTransferMovement[],
+	piggyBankMovements: PiggyBankMovement[] = []
 ) => {
 	try {
+		const canceledCashBillingRefs = new Set(
+			cashMovements
+				.filter(
+					m =>
+						m.type === 'EXPENSE' &&
+						m.category === CashMovementCategory.OTHER &&
+						m.reference
+				)
+				.map(m => m.reference)
+				.filter(ref =>
+					cashMovements.some(m => m.type === 'INCOME' && m.reference === ref)
+				)
+		);
+
 		const cashIncomes = cashMovements
-			.filter(item => item.type === 'INCOME')
+			.filter(
+				item =>
+					item.type === 'INCOME' && !canceledCashBillingRefs.has(item.reference)
+			)
 			.map(item => ({
 				category: CASH_MOVEMENT_CAT_MAP[item.category],
 				customer: item.customerName ?? '--',
@@ -330,58 +348,77 @@ export const generateFinancialData = (
 			}));
 
 		const cashExpenses = cashMovements
-			.filter(item => item.type === 'EXPENSE')
+			.filter(
+				item =>
+					item.type === 'EXPENSE' &&
+					!canceledCashBillingRefs.has(item.reference)
+			)
 			.map(item => ({
 				category: CASH_MOVEMENT_CAT_MAP[item.category],
+				categoryRaw: item.category,
 				customer: item.customerName ?? '--',
-				reference: item.reference ?? '--',
+				reference:
+					[item.reference, item.comments].filter(Boolean).join(' - ') || '--',
 				amount: Number(item.amount)
 			}));
 
-		// Agrupar movimientos bancarios por referencia y método de pago
-		const grouped = new Map<
-			string,
-			{
-				paymentMethod: string;
-				customer: string;
-				reference: string;
-				amount: number;
-			}
-		>();
+		const canceledBankBillingRefs = new Set(
+			bankTransferMovements
+				.filter(m => m.type === 'EXPENSE' && m.reference)
+				.map(m => m.reference)
+				.filter(ref =>
+					bankTransferMovements.some(
+						m => m.type === 'INCOME' && m.reference === ref
+					)
+				)
+		);
 
-		for (const item of bankTransferMovements) {
-			const key = `${item.reference}`;
-
-			const paymentMethod = item.paymentMethod
-				? PAYMENT_METHOD_MAP[item.paymentMethod]
-				: grouped.get(key)?.paymentMethod || '--';
-
-			const customer = item.customerName ?? '--';
-			const reference = item.reference ?? '--';
-			const amount = Number(item.amount);
-
-			if (!grouped.has(key)) {
-				grouped.set(key, { paymentMethod, customer, reference, amount: 0 });
-			}
-
-			const entry = grouped.get(key)!;
-
-			if (item.type === 'INCOME') {
-				entry.amount += amount;
-			} else if (item.type === 'EXPENSE') {
-				entry.amount -= amount;
-			}
-		}
-
-		// Filtrar los que tengan amount > 0 para mostrar solo los netos positivos
-		const bankData = Array.from(grouped.values())
-			.filter(entry => entry.amount > 0)
+		const bankData = bankTransferMovements
+			.filter(
+				item =>
+					item.type === 'INCOME' && !canceledBankBillingRefs.has(item.reference)
+			)
+			.map(item => ({
+				paymentMethod: PAYMENT_METHOD_MAP[item.paymentMethod] ?? '--',
+				customer: item.customerName ?? '--',
+				reference: item.reference ?? '--',
+				amount: Number(item.amount)
+			}))
 			.sort((a, b) => b.paymentMethod.localeCompare(a.paymentMethod));
 
-		return { cashIncomes, cashExpenses, bankData };
+		const piggyBankWithdrawalsTotal = piggyBankMovements
+			.filter(item => item.type === 'WITHDRAW' && !item.deletedDate)
+			.reduce((sum, item) => sum + Number(item.amount), 0);
+
+		const cashIncomesTotal = cashIncomes.reduce((sum, i) => sum + i.amount, 0);
+		const bankTotal = bankData.reduce((sum, e) => sum + e.amount, 0);
+
+		const deliveryChangesTotal = cashExpenses
+			.filter(
+				e =>
+					e.categoryRaw === CashMovementCategory.DELIVERY ||
+					e.categoryRaw === CashMovementCategory.CHANGE
+			)
+			.reduce((sum, e) => sum + e.amount, 0);
+
+		const totalSaleOfDay = cashIncomesTotal + bankTotal - deliveryChangesTotal;
+
+		return {
+			cashIncomes,
+			cashExpenses,
+			bankData,
+			piggyBankWithdrawalsTotal,
+			totalSaleOfDay
+		};
 	} catch (error) {
 		console.error(error);
-		return { cashIncomes: [], cashExpenses: [], bankData: [] };
+		return {
+			cashIncomes: [],
+			cashExpenses: [],
+			bankData: [],
+			piggyBankWithdrawalsTotal: 0,
+			totalSaleOfDay: 0
+		};
 	}
 };
 
@@ -784,6 +821,9 @@ export const downloadFinancialExcel = async ({
 	bankData,
 	piggyBankAmount,
 	finalCash,
+	initialCash,
+	piggyBankWithdrawalsTotal,
+	totalSaleOfDay,
 	fileName,
 	title,
 	date
@@ -793,6 +833,9 @@ export const downloadFinancialExcel = async ({
 	bankData: any[];
 	piggyBankAmount: number;
 	finalCash: number;
+	initialCash: number;
+	piggyBankWithdrawalsTotal: number;
+	totalSaleOfDay: number;
 	fileName: string;
 	title: string;
 	date: string;
@@ -939,12 +982,14 @@ export const downloadFinancialExcel = async ({
 			'',
 			'',
 			'Total efectivo:',
-			{ formula: `SUM(D4:D${3 + cashIncomes.length})` },
+			cashIncomes.length > 0
+				? { formula: `SUM(D4:D${3 + cashIncomes.length})` }
+				: 0,
 			'',
 			'',
 			'',
 			'Total depósitos:',
-			{ formula: `SUM(I4:I${3 + bankData.length})` }
+			bankData.length > 0 ? { formula: `SUM(I4:I${3 + bankData.length})` } : 0
 		]);
 
 		totalRow.font = { bold: true };
@@ -1028,9 +1073,11 @@ export const downloadFinancialExcel = async ({
 			'',
 			'',
 			'Total gastos:',
-			{
-				formula: `SUM(D${expHeaderRow.number + 1}:D${expHeaderRow.number + cashExpenses.length})`
-			}
+			cashExpenses.length > 0
+				? {
+						formula: `SUM(D${expHeaderRow.number + 1}:D${expHeaderRow.number + cashExpenses.length})`
+					}
+				: 0
 		]);
 
 		totalExpRow.font = { bold: true };
@@ -1048,42 +1095,41 @@ export const downloadFinancialExcel = async ({
 			};
 		});
 
-		// ==== Bloque Alcancía / Caja Final ====
+		// ==== Bloque resumen F-G ====
 		const blockCol = 6; // F
 		const blockStartRow = expHeaderRow.number;
-		worksheet.getCell(blockStartRow, blockCol).value = 'Alcancía';
-		worksheet.getCell(blockStartRow, blockCol).fill = {
-			type: 'pattern',
-			pattern: 'solid',
-			fgColor: { argb: 'C5D9F1' }
-		};
-		worksheet.getCell(blockStartRow, blockCol + 1).value =
-			Number(piggyBankAmount) ?? 0;
-
-		worksheet.getCell(blockStartRow + 1, blockCol).value = 'Caja final';
-		worksheet.getCell(blockStartRow + 1, blockCol).fill = {
-			type: 'pattern',
-			pattern: 'solid',
-			fgColor: { argb: 'C5D9F1' }
-		};
-		worksheet.getCell(blockStartRow + 1, blockCol + 1).value =
-			Number(finalCash) ?? 0;
-
-		// estilos bloque
-		for (let r = 0; r < 2; r++) {
-			for (let c = blockCol; c <= blockCol + 1; c++) {
-				const cell = worksheet.getCell(blockStartRow + r, c);
+		const blockRows = [
+			{ label: 'Caja inicial', value: initialCash, color: 'BDD7EE' },
+			{ label: 'Caja final', value: finalCash, color: 'BDD7EE' },
+			{
+				label: 'Retiros de Alcancía',
+				value: piggyBankWithdrawalsTotal,
+				color: 'FFE699'
+			},
+			{ label: 'Alcancía', value: piggyBankAmount, color: 'FFE699' },
+			{ label: 'Total Ventas del Día', value: totalSaleOfDay, color: 'C6E0B4' }
+		];
+		blockRows.forEach(({ label, value, color }, r) => {
+			const labelCell = worksheet.getCell(blockStartRow + r, blockCol);
+			const valueCell = worksheet.getCell(blockStartRow + r, blockCol + 1);
+			labelCell.value = label;
+			labelCell.fill = {
+				type: 'pattern',
+				pattern: 'solid',
+				fgColor: { argb: color }
+			};
+			labelCell.font = { bold: true };
+			valueCell.value = Number(value) ?? 0;
+			valueCell.numFmt = '"$" #,##0.00';
+			[labelCell, valueCell].forEach(cell => {
 				cell.border = {
 					top: { style: 'thin' },
 					left: { style: 'thin' },
 					bottom: { style: 'thin' },
 					right: { style: 'thin' }
 				};
-				if (c === blockCol) {
-					cell.font = { bold: true };
-				}
-			}
-		}
+			});
+		});
 
 		// ==== Estilos globales ====
 		worksheet.getColumn(4).numFmt = '"$" #,##0.00';

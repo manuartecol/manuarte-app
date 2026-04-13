@@ -93,7 +93,16 @@ const CashMovementForm = ({ shopId }: { shopId: string }) => {
 				</Form.Item>
 			</div>
 
-			<Form.Item name='comments' label='Comentarios'>
+			<Form.Item
+				name='comments'
+				label='Comentarios'
+				rules={[
+					{
+						required: true,
+						message: 'Requerido'
+					}
+				]}
+			>
 				<TextArea rows={2} />
 			</Form.Item>
 

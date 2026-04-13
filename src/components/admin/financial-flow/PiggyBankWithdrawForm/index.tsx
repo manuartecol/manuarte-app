@@ -51,7 +51,16 @@ const PiggyBankWithdrawForm = ({ shopId }: { shopId: string }) => {
 				/>
 			</Form.Item>
 
-			<Form.Item name='comments' label='Comentarios'>
+			<Form.Item
+				name='comments'
+				label='Comentarios'
+				rules={[
+					{
+						required: true,
+						message: 'Requerido'
+					}
+				]}
+			>
 				<TextArea rows={2} />
 			</Form.Item>
 
