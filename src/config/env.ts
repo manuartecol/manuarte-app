@@ -1,5 +1,3 @@
-const WA_BASE_URL = `${process.env.NEXT_PUBLIC_WA_URL}/${process.env.NEXT_PUBLIC_WA_PHONE_NUMBER_ID}`;
-
 export const ENV = {
 	BASE_URL: process.env.NEXT_PUBLIC_API_URL,
 	API: {
@@ -18,14 +16,9 @@ export const ENV = {
 		TRANSACTIONS: '/transactions',
 		CITIES: '/cities',
 		CASH_SESSION: '/cash-sessions',
-		WA_PROXY: '/whatsapp',
 		WA_SEND_QUOTE: (serialNumber: string) =>
 			`/docs/${serialNumber}/send-quote-pdf`,
 		WA_SEND_BILLING: (serialNumber: string) =>
 			`/docs/${serialNumber}/send-billing-pdf`
-	},
-	WA: {
-		MESSAGES: `${WA_BASE_URL}/messages`,
-		MEDIA: `${WA_BASE_URL}/media`
 	}
 };
