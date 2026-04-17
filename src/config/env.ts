@@ -18,7 +18,11 @@ export const ENV = {
 		TRANSACTIONS: '/transactions',
 		CITIES: '/cities',
 		CASH_SESSION: '/cash-sessions',
-		WA_PROXY: '/whatsapp'
+		WA_PROXY: '/whatsapp',
+		WA_SEND_QUOTE: (serialNumber: string) =>
+			`/docs/${serialNumber}/send-quote-pdf`,
+		WA_SEND_BILLING: (serialNumber: string) =>
+			`/docs/${serialNumber}/send-billing-pdf`
 	},
 	WA: {
 		MESSAGES: `${WA_BASE_URL}/messages`,

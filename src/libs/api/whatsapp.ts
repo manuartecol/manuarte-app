@@ -12,5 +12,16 @@ export const whatsAppLibs = {
 		const res = await axiosPrivate.post(ENV.API.WA_PROXY, body);
 
 		return res;
+	},
+
+	sendQuote: async (serialNumber: string) => {
+		const res = await axiosPrivate.post(ENV.API.WA_SEND_QUOTE(serialNumber));
+
+		return res;
+	},
+
+	sendBilling: async (serialNumber: string) => {
+		const res = await axiosPrivate.post(ENV.API.WA_SEND_BILLING(serialNumber));
+		return res;
 	}
 };

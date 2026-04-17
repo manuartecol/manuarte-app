@@ -15,10 +15,9 @@ import { BiDollar } from 'react-icons/bi';
 type Props = {
 	isQuote: boolean;
 	data: Quote | Billing;
-	shopSlug: string;
 };
 
-const PDFActions = ({ isQuote, data, shopSlug }: Props) => {
+const PDFActions = ({ isQuote, data }: Props) => {
 	const { openModal, closeModal } = useModalStore.getState();
 	const { sendPdf, calculateTotals } = usePdf();
 	const { total } = calculateTotals(data);
@@ -43,7 +42,7 @@ const PDFActions = ({ isQuote, data, shopSlug }: Props) => {
 				confirmText: `Se enviará al número de WhatsApp (+${data?.callingCode}) ${data?.phoneNumber}`,
 				onConfirm: async () => {
 					try {
-						await sendPdf({ isQuote, data });
+						await sendPdf({ isQuote, serialNumber: data.serialNumber });
 					} finally {
 						closeModal();
 					}

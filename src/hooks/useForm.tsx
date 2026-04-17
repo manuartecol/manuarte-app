@@ -65,7 +65,7 @@ const useForm = () => {
 	const dispatch = useDispatch();
 	const { closeModal } = useModalStore.getState();
 	const { closeDrawer } = useDrawerStore.getState();
-	const { sendPdfAfterCreateDoc } = usePdf();
+	const { sendPdf } = usePdf();
 
 	const handleSubmit = async ({
 		serviceFn,
@@ -269,7 +269,7 @@ const useForm = () => {
 				dispatch(addQuote(res?.data?.newQuote));
 
 				if (values?.phoneNumber) {
-					await sendPdfAfterCreateDoc({
+					await sendPdf({
 						isQuote: true,
 						serialNumber: res?.data?.newQuote?.serialNumber
 					});
@@ -291,7 +291,7 @@ const useForm = () => {
 				dispatch(updateQuote(res.data.updatedQuote));
 
 				if (values?.phoneNumber) {
-					await sendPdfAfterCreateDoc({
+					await sendPdf({
 						isQuote: true,
 						serialNumber: res?.data?.updatedQuote?.serialNumber
 					});
@@ -318,7 +318,7 @@ const useForm = () => {
 				const { status, serialNumber } = res?.data?.newBilling;
 
 				if (values?.phoneNumber && status === BillingStatus.PAID) {
-					await sendPdfAfterCreateDoc({
+					await sendPdf({
 						isQuote: false,
 						serialNumber
 					});
@@ -364,7 +364,7 @@ const useForm = () => {
 					currentStatus !== BillingStatus.PAID &&
 					values?.status === BillingStatus.PAID
 				) {
-					await sendPdfAfterCreateDoc({
+					await sendPdf({
 						isQuote: false,
 						serialNumber
 					});

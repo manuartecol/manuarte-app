@@ -34,7 +34,6 @@ const PDFContainer = ({ shopSlug, serialNumber, isQuote }: Props) => {
 			<PDFActions
 				isQuote={isQuote}
 				data={isQuote ? (data as Quote) : (data as Billing)}
-				shopSlug={shopSlug}
 			/>
 
 			<div className='shadow-[6px_6px_24px_rgba(0,0,0,0.25)] rounded-lg'>
