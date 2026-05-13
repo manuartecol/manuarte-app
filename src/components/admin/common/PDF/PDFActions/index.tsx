@@ -1,16 +1,14 @@
-import { Button, MenuProps, notification, Space } from 'antd';
+import { Button, notification } from 'antd';
 import { IoDownloadOutline } from 'react-icons/io5';
 import { BsSendArrowDown } from 'react-icons/bs';
 import { PiInvoice } from 'react-icons/pi';
-import { MdOutlinePendingActions } from 'react-icons/md';
-import DropdownMenu from '../../ui/DropdownMenu';
+import { BiDollar } from 'react-icons/bi';
 import PDFDoc from '../PDFDoc';
+import AddButton from '../../ui/AddButton';
 import { useModalStore } from '@/stores/modalStore';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import { BillingStatus, ModalContent } from '@/types/enums';
 import usePdf from '@/hooks/usePdf';
-import AddButton from '../../ui/AddButton';
-import { BiDollar } from 'react-icons/bi';
+import { BillingStatus, ModalContent } from '@/types/enums';
 
 type Props = {
 	isQuote: boolean;
@@ -50,61 +48,6 @@ const PDFActions = ({ isQuote, data }: Props) => {
 			}
 		});
 	};
-
-	const dropDownItems: MenuProps['items'] = [
-		{
-			key: '1',
-			label: (
-				<Space className='px-2'>
-					<Button
-						variant='text'
-						color='primary'
-						icon={
-							<PiInvoice
-								size={18}
-								style={{ display: 'flex', alignItems: 'center' }}
-							/>
-						}
-						onClick={() =>
-							openModal({
-								title: 'Generar Factura',
-								content: ModalContent.billings,
-								dataToHandle: data
-							})
-						}
-					>
-						Generar Factura
-					</Button>
-				</Space>
-			)
-		},
-		{
-			key: '2',
-			label: (
-				<Space className='px-2'>
-					<Button
-						variant='text'
-						color='primary'
-						icon={
-							<MdOutlinePendingActions
-								size={18}
-								style={{ display: 'flex', alignItems: 'center' }}
-							/>
-						}
-						onClick={() =>
-							openModal({
-								title: 'Pedido | Abono',
-								content: ModalContent.preOrder,
-								dataToHandle: data
-							})
-						}
-					>
-						Pedido | Abono
-					</Button>
-				</Space>
-			)
-		}
-	];
 
 	return (
 		<div className='flex items-center justify-between ps-4'>
@@ -161,7 +104,14 @@ const PDFActions = ({ isQuote, data }: Props) => {
 							}}
 						/>
 					)}
-					<DropdownMenu items={dropDownItems} label='Factura' />
+					<AddButton
+						title='Generar Factura'
+						modalContent={ModalContent.billings}
+						buttonLabel='Factura'
+						addIcon={false}
+						appendIcon={<PiInvoice size={18} />}
+						dataToHandle={data}
+					/>
 				</div>
 			) : null}
 		</div>
