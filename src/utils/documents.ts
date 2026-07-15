@@ -4,7 +4,7 @@ import {
 	PAYMENT_METHOD_MAP,
 	TRANSACTION_TYPES_MAP
 } from './mappings';
-import { formatDate, formatToTitleCase } from './formats';
+import { formatDate, formatMonthYear, formatToTitleCase } from './formats';
 import { CashMovementCategory, DiscountType } from '@/types/enums';
 
 export interface ExcelRestockData {
@@ -79,7 +79,9 @@ export interface ExcelTopSalesData {
 	Categoría: string;
 	Producto: string;
 	Cantidad: number;
-	Precio: number;
+	'Precio Público': number;
+	'Precio Distribuidor': number;
+	'Precio Promedio': number;
 	'Total Ventas': number;
 }
 
@@ -286,27 +288,24 @@ export const generateTopCustomersData = (data: Customer[]) => {
 	}
 };
 
-export const generateTopSalesData = (topGroups: any[]) => {
+export const generateTopSalesData = (products: ProductSalesReportItem[]) => {
 	try {
 		const excelData: ExcelTopSalesData[] = [];
-		let index = 1;
 
-		if (topGroups?.length > 0) {
-			for (const group of topGroups) {
-				if (group.topProducts?.length > 0) {
-					for (const product of group.topProducts) {
-						excelData.push({
-							'#': index++,
-							'Grupo de Categoría': group.groupName,
-							Categoría: product.categoryName,
-							Producto: `${product.baseProductName} - ${product.productName}`,
-							Cantidad: Number(product.totalQuantity),
-							Precio: Number(product.avgUnitPrice),
-							'Total Ventas': Number(product.totalRevenue)
-						});
-					}
-				}
-			}
+		if (products?.length > 0) {
+			products.forEach((product, i) => {
+				excelData.push({
+					'#': i + 1,
+					'Grupo de Categoría': product.groupName,
+					Categoría: product.categoryName,
+					Producto: `${product.baseProductName} - ${product.productName}`,
+					Cantidad: Number(product.totalQuantity),
+					'Precio Público': Number(product.pricePvp),
+					'Precio Distribuidor': Number(product.priceDis),
+					'Precio Promedio': Number(product.avgUnitPrice),
+					'Total Ventas': Number(product.totalRevenue)
+				});
+			});
 		}
 
 		return excelData;
@@ -427,7 +426,9 @@ export const downloadExcel = async ({
 	fileName,
 	title,
 	info = undefined,
-	date
+	date,
+	dateFormat = 'day',
+	currency
 }: {
 	data:
 		| ExcelRestockData[]
@@ -441,12 +442,14 @@ export const downloadExcel = async ({
 	title: string;
 	info?: any | undefined;
 	date?: string;
+	dateFormat?: 'day' | 'month';
+	currency?: 'COP' | 'USD';
 }) => {
 	try {
 		if (data?.length > 0) {
 			const workbook = new ExcelJS.Workbook();
 			const worksheet = workbook.addWorksheet('Hoja 1');
-			const isUsd = title.toLowerCase().includes('quito');
+			const isUsd = currency === 'USD' || title.toLowerCase().includes('quito');
 
 			const headers = Object.keys(data[0]);
 			const totalColumns = headers.length;
@@ -621,7 +624,11 @@ export const downloadExcel = async ({
 			if (!isCustomerReport) {
 				worksheet.mergeCells(`${lastColLetter}1:${lastColLetter}2`);
 				const dateCell = worksheet.getCell(`${lastColLetter}1`);
-				dateCell.value = date ? formatDate(date) : formatDate(new Date());
+				const resolvedDate = date ?? new Date();
+				dateCell.value =
+					dateFormat === 'month'
+						? formatMonthYear(resolvedDate)
+						: formatDate(resolvedDate);
 				dateCell.font = { bold: true, size: 11 };
 				dateCell.alignment = { vertical: 'middle', horizontal: 'center' };
 				dateCell.border = {
@@ -711,7 +718,9 @@ export const downloadExcel = async ({
 						headers[colNumber - 1] === 'Precio Costo' ||
 						headers[colNumber - 1] === 'Costo Total' ||
 						headers[colNumber - 1] === 'Ganancia Unitaria' ||
-						headers[colNumber - 1] === 'Precio' ||
+						headers[colNumber - 1] === 'Precio Público' ||
+						headers[colNumber - 1] === 'Precio Distribuidor' ||
+						headers[colNumber - 1] === 'Precio Promedio' ||
 						headers[colNumber - 1] === 'Total Ventas'
 					) {
 						cell.numFmt =

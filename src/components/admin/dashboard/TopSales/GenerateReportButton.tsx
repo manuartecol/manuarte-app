@@ -33,10 +33,7 @@ const GenerateTopSalesReportButton = ({
 				selectedMonth.format('M')
 			);
 
-			if (
-				!data?.topGroupsWithProducts ||
-				data?.topGroupsWithProducts.length <= 0
-			) {
+			if (!data?.products || data?.products.length <= 0) {
 				notification.error({
 					message: 'No se encontraron datos para generar el reporte',
 					key: 'top-sales-report-error'
@@ -44,7 +41,7 @@ const GenerateTopSalesReportButton = ({
 				return;
 			}
 
-			const excelData = generateTopSalesData(data.topGroupsWithProducts);
+			const excelData = generateTopSalesData(data.products);
 
 			if (excelData) {
 				const country = currency === 'COP' ? 'Colombia' : 'Ecuador';
@@ -54,7 +51,10 @@ const GenerateTopSalesReportButton = ({
 				downloadExcel({
 					data: excelData,
 					fileName,
-					title
+					title,
+					date: selectedMonth.toISOString(),
+					dateFormat: 'month',
+					currency: currency as 'COP' | 'USD'
 				});
 			}
 		} catch (error) {

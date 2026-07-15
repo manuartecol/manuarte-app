@@ -89,6 +89,16 @@ export const formatDate = (date: Date | string, showTime: boolean = false) => {
 	}
 };
 
+export const formatMonthYear = (date: Date | string) => {
+	try {
+		if (!date) return '--';
+
+		return moment(date).format('MMM-YYYY').toUpperCase();
+	} catch (error) {
+		console.error(error);
+	}
+};
+
 export const objectToSearchParams = (
 	obj: Record<string, any>
 ): URLSearchParams => {

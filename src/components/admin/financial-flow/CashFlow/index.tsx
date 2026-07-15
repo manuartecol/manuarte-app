@@ -46,7 +46,7 @@ const CashFlow = ({ shopId, isLoading, onChangeDate, selectedDate }: Props) => {
 				/>
 
 				<div className='flex items-end gap-2'>
-					{data && status === 'blocked' && (
+					{data && !data?.closedAt && status === 'blocked' && (
 						<h2 className='text-[16px] text-[#E53535] border border-[#E53535] font-semibold px-3'>
 							{reason}
 						</h2>
@@ -229,6 +229,7 @@ const CashFlow = ({ shopId, isLoading, onChangeDate, selectedDate }: Props) => {
 								</div>
 
 								{status === CurrentCashSessionStatus.OPEN &&
+									!data?.closedAt &&
 									data?.piggyBankAmount &&
 									data?.piggyBankAmount > 0 && (
 										<AddButton

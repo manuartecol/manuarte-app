@@ -503,19 +503,26 @@ interface SubmitCashMovementDto {
 	comments?: string;
 }
 
+interface ProductSalesReportItem {
+	productVariantId: string;
+	productName: string;
+	baseProductName: string;
+	categoryName: string;
+	groupName: string;
+	totalQuantity: number;
+	avgUnitPrice: number;
+	pricePvp: number;
+	priceDis: number;
+	totalRevenue: number;
+}
+
 interface SalesReport {
 	period: {
 		start: string;
 		end: string;
 		currency: 'COP' | 'USD';
 	};
-	topGroupsWithProducts: {
-		groupId: string;
-		groupName: string;
-		totalQuantity: number;
-		totalRevenue: number;
-		topProducts: BillingItem[];
-	}[];
+	products: ProductSalesReportItem[];
 	comparison: {
 		current: {
 			revenue: number;
