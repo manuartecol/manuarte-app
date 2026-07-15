@@ -1,54 +1,56 @@
 # Manuarte — Frontend
 
-Frontend de la plataforma de gestión y ventas de Manuarte, insumos para velas y jabones. Aplicación multi-tienda para administrar productos, cotizaciones, facturas, stock, transacciones entre bodegas y flujo financiero/caja.
+Frontend for the Manuarte management and sales platform, for candle and soap-making supplies. A multi-shop application to manage products, quotes, invoices, stock, warehouse-to-warehouse transactions, and financial flow/cash sessions.
 
-Construido con **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS** y **Ant Design**.
+Built with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, and **Ant Design**.
 
-## Requisitos
+## Requirements
 
 - Node.js 18+
-- Acceso al backend de Manuarte (API REST) corriendo localmente o remoto
+- Access to the Manuarte backend (REST API), running locally or remotely
 
-## Configuración
+## Setup
 
-1. Instalar dependencias:
+1. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Copiar `.env.example` a `.env` y completar los valores:
+2. Copy `.env.example` to `.env` and fill in the values:
 
    ```bash
    cp .env.example .env
    ```
 
-   Cualquier variable que deba estar disponible en el cliente debe tener el prefijo `NEXT_PUBLIC_`.
+   Any variable that needs to be available on the client must be prefixed with `NEXT_PUBLIC_`.
 
-## Comandos
+## Commands
 
 ```bash
-npm run dev      # servidor de desarrollo (http://localhost:3000)
-npm run build    # build de producción
-npm run start    # ejecuta el build de producción
+npm run dev      # development server (http://localhost:3000)
+npm run build    # production build
+npm run start    # runs the production build
 npm run lint     # eslint (next lint)
 ```
 
-## Arquitectura
+There is no automated test suite in this repo.
 
-### Flujo de datos: `libs/api` → `services`/hooks → Redux, mutaciones en `useForm`
+## Architecture
 
-- **`src/libs/api/*.ts`** — wrappers de axios puros por dominio (`product.ts`, `billing.ts`, `quote.ts`, etc.), nombrados `<domain>Libs`. Llaman a `axiosPrivate` (`src/libs/api/axios.ts`) y son los únicos archivos autorizados a hacer llamadas HTTP.
-- **`src/services/*.ts`** — hooks (`use<Domain>Services`) que llaman a `libs/api` y despachan los resultados a Redux. Es el camino de "lectura": los componentes usan estos hooks para poblar el store.
-- **`src/hooks/useForm.tsx`** — un único hook grande con todos los handlers de creación/actualización de la app (`submitCreateProduct`, `submitUpdateBilling`, `submitTransaction`, `submitOpenCashSession`, ...). Cada uno envuelve llamadas a `libs/api` con `handleSubmit`, que muestra notificaciones de Ant Design, cierra el modal/drawer global en éxito y despacha la actualización a Redux.
-- **`src/reducers/`** — slices de Redux Toolkit, una carpeta por dominio, combinados en `src/reducers/store.ts`.
-- **`src/stores/`** — stores de Zustand para estado de UI transitorio (`modalStore.ts`, `drawerStore.ts`). Redux es para datos de dominio, Zustand para estado exclusivo de UI.
+### Data flow: `libs/api` → `services`/hooks → Redux, mutations in `useForm`
 
-> Existe un setup de axios duplicado en `src/services/axios.ts` (similar a `src/libs/api/axios.ts`), remanente de una consolidación anterior. `src/libs/api/axios.ts` es el canónico para código nuevo.
+- **`src/libs/api/*.ts`** — pure axios wrappers per domain (`product.ts`, `billing.ts`, `quote.ts`, etc.), named `<domain>Libs`. They call `axiosPrivate` (`src/libs/api/axios.ts`) and are the only files allowed to make HTTP calls.
+- **`src/services/*.ts`** — hooks (`use<Domain>Services`) that call `libs/api` and dispatch the results into Redux. This is the "read" path: components use these hooks to populate the store.
+- **`src/hooks/`** — reusable hooks used across the app.
+- **`src/reducers/`** — Redux Toolkit slices, one folder per domain, combined in `src/reducers/store.ts`. Never mutate slice state directly from components; always dispatch actions exported from the slice.
+- **`src/stores/`** — Zustand stores for transient UI state (`modalStore.ts`, `drawerStore.ts`). Redux is for domain data, Zustand is for UI-only state.
 
-### Sistema global de Modal/Drawer
+> There is a duplicate axios setup at `src/services/axios.ts` (near-identical to `src/libs/api/axios.ts`), a leftover from consolidating on the `libs/api` pattern. Treat `src/libs/api/axios.ts` as canonical for new code.
 
-La app renderiza un único `<CustomModal />` y `<CustomDrawer />` a nivel de layout. Cualquier componente los abre a través de los stores de Zustand:
+### Global Modal/Drawer system
+
+The app renders one `<CustomModal />` and one `<CustomDrawer />` at the layout level. Any component opens them via the Zustand stores:
 
 ```ts
 useModalStore
@@ -59,38 +61,38 @@ useDrawerStore
 	.openDrawer({ content: DrawerContent.quotes, dataToHandle });
 ```
 
-`content` es un valor de `ModalContent`/`DrawerContent` (`src/types/enums.ts`). Los hooks `useModal()`/`useDrawer()` mapean cada valor del enum al componente a renderizar.
+`content` is a value from `ModalContent`/`DrawerContent` (`src/types/enums.ts`). The hooks `useModal()`/`useDrawer()` map each enum value to the actual component to render.
 
-### Tipos globales ambientales
+### Global ambient types
 
-`src/types.d.ts` declara interfaces/tipos de dominio (`Product`, `Quote`, `Billing`, `StockItem`, `Transaction`, `SubmitProductDto`, `RootState`, etc.) como declaraciones ambientales globales — **no requieren import**, están disponibles en todo el proyecto. Los enums usados en runtime viven en `src/types/enums.ts` y sí deben importarse normalmente.
+`src/types.d.ts` declares domain interfaces/types (`Product`, `Quote`, `Billing`, `StockItem`, `Transaction`, `SubmitProductDto`, `RootState`, etc.) as global ambient declarations — **no import needed**, they're available everywhere in the project. Enums used at runtime live in `src/types/enums.ts` and must be imported normally.
 
-### Auth y protección de rutas
+### Auth & route protection
 
-- NextAuth (v5 beta) configurado en `src/auth.ts`, con un Credentials provider contra el backend (`authServices.login`). El callback JWT decodifica el access token del backend (`jwt-decode`) y guarda `roleName`, `shop`, `shopId`, `stockId`, `extraPermissions`, etc. en la sesión.
-- `src/middleware.ts` corre sobre `/admin/:path*` y `/auth/login`, resolviendo rutas permitidas por rol vía `AUTH_RULES(shop, shopId)` en `src/utils/auth.ts` (roles: `admin`, `cajero`, `bodeguero`), más un mapa de overrides basado en `extraPermissions`.
-- Las rutas están centralizadas en `src/utils/routes.ts` (`ROUTES`) — nunca hardcodear strings de rutas.
+- NextAuth (v5 beta) configured in `src/auth.ts`, using a Credentials provider against the backend (`authServices.login`). The JWT callback decodes the backend's access token (`jwt-decode`) and stores `roleName`, `shop`, `shopId`, `stockId`, `extraPermissions`, etc. on the session.
+- `src/middleware.ts` runs on `/admin/:path*` and `/auth/login`, resolving allowed paths per role via `AUTH_RULES(shop, shopId)` in `src/utils/auth.ts` (roles: `admin`, `cajero`, `bodeguero`), plus an `extraPermissions`-based override map.
+- Routes are centralized in `src/utils/routes.ts` (`ROUTES`) — never hardcode path strings.
 
-### Configuración de endpoints
+### Endpoint configuration
 
-`src/config/env.ts` (`ENV.API.*`) centraliza los paths de endpoints del backend, combinados con `ENV.BASE_URL` (desde `NEXT_PUBLIC_API_URL`).
+`src/config/env.ts` (`ENV.API.*`) centralizes backend endpoint paths, combined with `ENV.BASE_URL` (from `NEXT_PUBLIC_API_URL`).
 
-### Estructura de rutas/dominio
+### Routing/domain structure
 
-`src/app/admin/` refleja las áreas de dominio: `productos`, `staff`, `clientes/[id]`, `cotizaciones/[shopSlug]`, `facturas/[shopSlug]`, `stock/[shopSlug]`, `movimientos-stock`, `flujo-financiero/[shopSlug]`, `dashboard`. Las áreas por tienda listan tiendas primero y luego navegan a una ruta `[shopSlug]`.
+`src/app/admin/` mirrors the domain areas: `productos`, `staff`, `clientes/[id]`, `cotizaciones/[shopSlug]`, `facturas/[shopSlug]`, `stock/[shopSlug]`, `movimientos-stock`, `flujo-financiero/[shopSlug]`, `dashboard`. Shop-scoped areas list shops first, then drill into a `[shopSlug]` route.
 
-`src/components/admin/<domain>/` contiene los componentes de cada dominio; los building blocks compartidos viven en `src/components/admin/common/` (`layout/`, `ui/`, `input-data/`, `display-data/`, `PDF/`).
+`src/components/admin/<domain>/` holds the matching domain components; shared building blocks live under `src/components/admin/common/` (`layout/`, `ui/`, `input-data/`, `display-data/`, `PDF/`).
 
-### Generación de PDF
+### PDF generation
 
-Cotizaciones y facturas se renderizan y envían como PDF vía `@react-pdf/renderer`, bajo `src/components/admin/common/PDF/` y el hook `usePdf` (`src/hooks/usePdf.tsx`). El envío de PDFs a clientes usa `src/libs/api/whatsapp.ts`.
+Quotes and invoices are rendered and sent as PDFs via `@react-pdf/renderer`, under `src/components/admin/common/PDF/` and the `usePdf` hook (`src/hooks/usePdf.tsx`). Sending PDFs to customers goes through `src/libs/api/whatsapp.ts`.
 
-## Convenciones
+## Conventions
 
-- Tabs para indentación, comillas simples, sin punto y coma obligatorio, sin comas finales (ver `.prettierrc`).
-- Arrow functions para componentes y funciones donde sea posible.
-- Identificadores de código en inglés (variables, funciones, archivos); texto de UI en español.
-- Funciones async envuelven la lógica en `try/catch` con `console.error` en caso de fallo.
-- TypeScript estricto; evitar `any` salvo justificación.
-- Preferir componentes existentes en `src/components/admin/common/` y helpers en `src/utils/`/`src/hooks/` antes de crear nuevos.
-- Alias de path `@/*` mapea a `src/*` (ver `tsconfig.json`).
+- Tabs for indentation, single quotes, no required semicolons, no trailing commas (see `.prettierrc`).
+- Arrow functions for components and functions where possible.
+- English for code identifiers (variables, functions, files); Spanish for user-facing UI text.
+- Async functions wrap logic in `try/catch` with `console.error` on failure.
+- Strict TypeScript; avoid `any` unless justified.
+- Prefer existing components in `src/components/admin/common/` and helpers in `src/utils/`/`src/hooks/` over writing new ones.
+- Path alias `@/*` maps to `src/*` (see `tsconfig.json`).
