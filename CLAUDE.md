@@ -17,7 +17,7 @@ npm run lint     # next lint (eslint)
 
 There is no automated test suite in this repo.
 
-Env vars live in `.env` (not committed patterns, but this repo has one checked in): `NEXT_PUBLIC_API_URL` (backend base URL), `NEXTAUTH_SECRET`, `NEXTAUTH_URL`. Client-exposed vars must be prefixed `NEXT_PUBLIC_`.
+Env vars live in `.env`, which is gitignored; the checked-in template is `.env.example`: `NEXT_PUBLIC_API_URL` (backend base URL), `NEXTAUTH_SECRET`, `NEXTAUTH_URL`. Client-exposed vars must be prefixed `NEXT_PUBLIC_`.
 
 ## Architecture
 
@@ -76,3 +76,4 @@ Quotes/billings can be rendered and sent as PDFs via `@react-pdf/renderer`, unde
 - Strict TypeScript; avoid `any` unless justified.
 - Prefer existing components in `src/components/admin/common/` and helpers in `src/utils/` / `src/hooks/` over writing new ones.
 - Path alias `@/*` maps to `src/*` (see `tsconfig.json`).
+- Commits follow Conventional Commits and are written in English, title and body: `type(scope): subject`, e.g. `fix(admin): debounce product search`. Types in use: `feat`, `fix`, `perf`, `refactor`, `chore`, `docs`; the scope is the domain area touched. Commits made before this convention was adopted do not follow it: follow the convention, not the history.
