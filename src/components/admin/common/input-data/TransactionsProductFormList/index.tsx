@@ -101,7 +101,7 @@ const TransactionsProductFormList = ({
 
 					if (!selectedProduct?.stocks?.includes(toId)) {
 						return notification.error({
-							message: 'El item no existe en el stock de destino!'
+							message: 'El item no está activo en el stock de destino!'
 						});
 					}
 				}
@@ -192,7 +192,7 @@ const TransactionsProductFormList = ({
 
 			if (destinationNotExist?.length > 0) {
 				return notification.info({
-					message: `Los siguientes items no existen en destino: ◾${destinationNotExist.join(' - ')}`
+					message: `Los siguientes items no están activos en destino: ◾${destinationNotExist.join(' - ')}`
 				});
 			}
 
