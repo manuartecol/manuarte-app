@@ -16,12 +16,16 @@ import SelectStocks from '../../products/SelectStocks';
 import useForm from '@/hooks/useForm';
 import { useModalStore } from '@/stores/modalStore';
 import { getProductsData } from '../../utils';
+import useDebouncedSearch from '@/hooks/useDebouncedSearch';
 import { formatInputCurrency } from '@/utils/formats';
 import { stockItemLibs } from '@/libs/api/stock-item';
+
+const MIN_SEARCH_LENGTH = 3;
 
 const StockItemForm = () => {
 	const { form, isLoading, submitCreateStockItem, submitUpdateStockItem } =
 		useForm();
+	const { schedule, cancel } = useDebouncedSearch();
 	const { dataToHandle } = useModalStore.getState();
 	const { shops } = useSelector((state: RootState) => state.shop);
 	const [productsOptions, setProductsOptions] = useState<
@@ -131,50 +135,43 @@ const StockItemForm = () => {
 		}
 	};
 
-	let timeout: ReturnType<typeof setTimeout> | null;
-
 	const handleSearch = (newValue: string) => {
-		setIsSearching(true);
-		if (timeout) {
-			clearTimeout(timeout);
-			timeout = null;
+		if (!newValue || newValue.length < MIN_SEARCH_LENGTH) {
+			cancel();
+			setProductsOptions([]);
+			setIsSearching(false);
+			return;
 		}
-		const currentValue = newValue;
 
-		if (newValue) {
-			if (newValue.length < 3) {
-				setProductsOptions([]);
+		setIsSearching(true);
+		setHasSearched(true);
+
+		schedule(async isCurrent => {
+			if (!shopInfo?.stockId) {
+				notification.error({
+					message: 'No se cargó correctamente el ID del stock',
+					key: 'stock_id_error'
+				});
 				setIsSearching(false);
 				return;
 			}
-			setHasSearched(true);
 
-			timeout = setTimeout(async () => {
-				if (!shopInfo?.stockId) {
-					notification.error({
-						message: 'No se cargó correctamente el ID del stock',
-						key: 'stock_id_error'
-					});
-					setIsSearching(false);
-					return;
-				}
+			const res = await getProductsData({
+				search: newValue,
+				stockId: shopInfo.stockId,
+				missingProducts: true
+			});
 
-				const res = await getProductsData({
-					currentValue,
-					newValue,
-					stockId: shopInfo?.stockId,
-					missingProducts: true
-				});
+			// Mientras esta petición estaba en vuelo llegó otra búsqueda, así que
+			// este resultado ya no corresponde a lo que el usuario tiene escrito
+			if (!isCurrent()) return;
 
-				if (res?.formattedData) {
-					setProductsOptions(res.formattedData);
-				}
-				setIsSearching(false);
-			}, 500);
-		} else {
-			setProductsOptions([]);
+			if (res?.formattedData) {
+				setProductsOptions(res.formattedData);
+			}
+
 			setIsSearching(false);
-		}
+		});
 	};
 
 	const handleChange = (newValue: string) => {

@@ -33,34 +33,29 @@ export const updateCalculations = (
 };
 
 export const getProductsData = async ({
-	currentValue,
-	newValue,
+	search,
 	stockId,
 	missingProducts
 }: {
-	currentValue: string;
-	newValue: string;
+	search: string;
 	stockId: string;
 	missingProducts?: boolean;
 }) => {
 	try {
 		const data = await productLibs.searchProductVariants({
 			stockId,
-			search: newValue,
+			search,
 			missingProducts
 		});
 
-		let formattedData;
-		if (currentValue === newValue) {
-			formattedData = data.map((item: any) => {
-				const quantity = 'quantity' in item ? `(${item?.quantity} unds)` : '';
+		const formattedData = data.map((item: any) => {
+			const quantity = 'quantity' in item ? `(${item?.quantity} unds)` : '';
 
-				return {
-					value: item.id,
-					label: `${item.productName} - ${item.name} ${quantity}`
-				};
-			});
-		}
+			return {
+				value: item.id,
+				label: `${item.productName} - ${item.name} ${quantity}`
+			};
+		});
 
 		return { formattedData, data };
 	} catch (error) {
