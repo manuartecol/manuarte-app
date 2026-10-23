@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
-import { Form, notification, Select, SelectProps, Spin } from 'antd';
+import { Form, notification, Select, SelectProps, Spin, Tag } from 'antd';
 import { MehOutlined } from '@ant-design/icons';
 import { getProductsData } from '@/components/admin/utils';
 import useDebouncedSearch from '@/hooks/useDebouncedSearch';
@@ -11,13 +11,20 @@ interface SearchAndAddProductsProps {
 	selectedProduct: ProductVariantWithStock | null;
 	setSelectedProduct: Dispatch<SetStateAction<ProductVariantWithStock | null>>;
 	stockId: string | undefined;
+	/**
+	 * Lista también los items desactivados en la bodega, atenuados y no
+	 * seleccionables. Apagado por defecto: en factura y cotización un item
+	 * desactivado no se puede vender, así que no tiene sentido ofrecerlo.
+	 */
+	includeInactive?: boolean;
 }
 
 const SearchAndAddProducts = ({
 	onAdd,
 	selectedProduct,
 	setSelectedProduct,
-	stockId
+	stockId,
+	includeInactive = false
 }: SearchAndAddProductsProps) => {
 	const [productsOptions, setProductsOptions] = useState<
 		SelectProps['options']
@@ -49,7 +56,11 @@ const SearchAndAddProducts = ({
 				return;
 			}
 
-			const res = await getProductsData({ search: newValue, stockId });
+			const res = await getProductsData({
+				search: newValue,
+				stockId,
+				includeInactive
+			});
 
 			// Mientras esta petición estaba en vuelo llegó otra búsqueda, así que
 			// este resultado ya no corresponde a lo que el usuario tiene escrito
@@ -88,8 +99,32 @@ const SearchAndAddProducts = ({
 			<div className='text-center'>
 				<MehOutlined style={{ fontSize: 24 }} />
 				<p>Sin resultados</p>
+				<p className='text-xs text-gray-400'>
+					Si el código existe pero no aparece, puede estar desactivado en esta
+					bodega
+				</p>
 			</div>
 		)
+	);
+
+	// Se conserva el resto de la opción con el spread: reconstruirla solo con
+	// {value, label} descartaba `disabled`, que es lo que impide elegir un item
+	// desactivado. El motivo va en un Tag y no entre paréntesis porque la fila
+	// entera está atenuada y el texto suelto se perdía dentro de ella.
+	const options = (productsOptions ?? []).map(option =>
+		option.inactiveInOrigin
+			? {
+					...option,
+					label: (
+						<span className='flex items-center justify-between gap-2'>
+							<span className='truncate'>{option.label}</span>
+							<Tag color='warning' className='!mr-0 shrink-0'>
+								Desactivado en bodega
+							</Tag>
+						</span>
+					)
+				}
+			: option
 	);
 
 	return (
@@ -104,10 +139,7 @@ const SearchAndAddProducts = ({
 				onSearch={handleSearch}
 				onSelect={handleSelect}
 				notFoundContent={searchingOrNoContent}
-				options={(productsOptions || []).map(d => ({
-					value: d.value,
-					label: d.label
-				}))}
+				options={options}
 			/>
 		</Form.Item>
 	);

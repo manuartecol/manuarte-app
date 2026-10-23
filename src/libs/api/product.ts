@@ -47,17 +47,19 @@ export const productLibs = {
 	searchProductVariants: async ({
 		stockId,
 		search,
-		missingProducts = false
+		missingProducts = false,
+		includeInactive = false
 	}: {
 		stockId: string;
 		search: string;
 		missingProducts?: boolean;
+		includeInactive?: boolean;
 	}) => {
 		try {
 			const res = await axiosPrivate.get(
 				`${ENV.API.PRODUCT_VARIANTS}/search/${stockId}`,
 				{
-					params: { search, missingProducts }
+					params: { search, missingProducts, includeInactive }
 				}
 			);
 

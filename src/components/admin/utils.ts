@@ -35,25 +35,37 @@ export const updateCalculations = (
 export const getProductsData = async ({
 	search,
 	stockId,
-	missingProducts
+	missingProducts,
+	includeInactive
 }: {
 	search: string;
 	stockId: string;
 	missingProducts?: boolean;
+	includeInactive?: boolean;
 }) => {
 	try {
 		const data = await productLibs.searchProductVariants({
 			stockId,
 			search,
-			missingProducts
+			missingProducts,
+			includeInactive
 		});
 
 		const formattedData = data.map((item: any) => {
 			const quantity = 'quantity' in item ? `(${item?.quantity} unds)` : '';
+			// Un item desactivado en la bodega se lista pero no se puede elegir: así
+			// se ve que el código existe y por qué no sirve, en vez de no ver nada.
+			// El motivo viaja como dato y lo pinta quien renderiza: este archivo es
+			// .ts y no puede construir JSX.
+			const inactiveInOrigin = item?.activeInOrigin === false;
 
 			return {
 				value: item.id,
-				label: `${item.productName} - ${item.name} ${quantity}`
+				label: inactiveInOrigin
+					? `${item.productName} - ${item.name}`
+					: `${item.productName} - ${item.name} ${quantity}`,
+				disabled: inactiveInOrigin,
+				inactiveInOrigin
 			};
 		});
 

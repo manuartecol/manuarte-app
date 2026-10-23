@@ -30,6 +30,12 @@ interface ProductVariantWithStock extends ProductVariant {
 	totalPrice: number;
 	stockItemId: string;
 	stocks: string[];
+	/**
+	 * Si el item de stock está activo en la bodega consultada. Solo viene cuando
+	 * la búsqueda se pidió con `includeInactive`; en el resto de los casos el
+	 * backend ya devuelve únicamente activos.
+	 */
+	activeInOrigin?: boolean;
 }
 
 interface Product {
