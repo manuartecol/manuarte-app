@@ -1,4 +1,5 @@
 import {
+	Alert,
 	Button,
 	Form,
 	FormInstance,
@@ -42,6 +43,17 @@ const TransactionsProductFormList = ({
 	const [addedProducts, setAddedProducts] = useState<Record<string, number>>(
 		{}
 	);
+	/**
+	 * Resultado de la última carga por archivo. Vive en el formulario y no en una
+	 * notificación porque es una lista de trabajo: el usuario la necesita a la
+	 * vista mientras corrige el Excel, y con un archivo de 50 filas no cabe en un
+	 * aviso flotante.
+	 */
+	const [bulkRejected, setBulkRejected] = useState<{
+		added: number;
+		total: number;
+		groups: { reason: string; items: string[] }[];
+	} | null>(null);
 	const { content, dataToHandle } = useDrawerStore.getState();
 	const itemsList: ProductVariantWithStock[] = Form.useWatch('items', form);
 	const toId = useWatch('toId', form);
@@ -67,7 +79,9 @@ const TransactionsProductFormList = ({
 	const handleAddProduct = (add: AddItemFormListFn) => {
 		try {
 			if (selectedProduct) {
-				const inList = itemsList.some(
+				// `?? []` porque Form.useWatch devuelve undefined hasta que el
+				// Form.List se inicializa, y ahí el .some lanzaría
+				const inList = (itemsList ?? []).some(
 					(product: ProductVariantWithStock) =>
 						product.productVariantId === selectedProduct.id
 				);
@@ -75,6 +89,17 @@ const TransactionsProductFormList = ({
 				if (inList) {
 					return notification.error({
 						message: 'El producto ya se encuentra en la lista!'
+					});
+				}
+
+				// Va antes que la comprobación de stock y aplica a todos los
+				// movimientos: un item desactivado también tiene cantidad 0, así que
+				// al revés siempre se reportaría como un problema de existencias.
+				// El buscador ya lo muestra deshabilitado, pero la regla queda aquí
+				// explícita para no depender de eso.
+				if (selectedProduct.activeInOrigin === false) {
+					return notification.error({
+						message: 'El producto está desactivado en esta bodega!'
 					});
 				}
 
@@ -127,6 +152,11 @@ const TransactionsProductFormList = ({
 
 	const handleAddBulkProduct = (add: AddItemFormListFn, productList: any[]) => {
 		try {
+			// Se limpia antes de cualquier salida temprana: si no, un archivo vacío
+			// o un destino sin elegir dejarían a la vista el detalle de la carga
+			// anterior junto a un error que no tiene nada que ver
+			setBulkRejected(null)
+
 			if (productList.length === 0) {
 				return notification.error({
 					message: 'No se encontraron productos en el archivo!'
@@ -139,66 +169,109 @@ const TransactionsProductFormList = ({
 				});
 			}
 
-			const originOutOfStock: string[] = [];
-			const destinationNotExist: string[] = [];
+			const added: string[] = []
+			const inactiveInOrigin: string[] = []
+			const originOutOfStock: string[] = []
+			const destinationNotActive: string[] = []
+			const alreadyInList: string[] = []
+
+			// Se lista con el código delante: es lo que permite encontrar la fila en
+			// el Excel para corregirla. Con el nombre solo hay que ir adivinando.
+			const label = (product: any) =>
+				`${product.productCode} · ${product.name}`
 
 			productList.forEach(product => {
-				if (product) {
-					const inList = itemsList.some(
-						(product: ProductVariantWithStock) =>
-							product.productVariantId === product.id
-					);
+				if (!product) return
 
-					if (inList) {
-						return notification.error({
-							message: 'El producto ya se encuentra en la lista!'
-						});
-					}
+				// El parámetro se llamaba igual que la variable del forEach, así que
+				// comparaba cada item de la lista contra sí mismo y nunca detectaba
+				// un repetido
+				const inList = (itemsList ?? []).some(
+					(item: ProductVariantWithStock) =>
+						item.productVariantId === product.id
+				)
 
-					if (content === DrawerContent.transfer) {
-						if (product.quantity === 0) {
-							originOutOfStock.push(product.name);
-							return;
-						}
-
-						if (!product?.stocks?.includes(toId)) {
-							destinationNotExist.push(product.name);
-							return;
-						}
-					}
-
-					setAddedProducts(prev => ({
-						...prev,
-						[product.id]: product.quantity
-					}));
-
-					setItemsError(false);
-
-					add({
-						productVariantId: product?.id,
-						stockItemId: product?.stockItemId,
-						name: product.name,
-						quantity: product.requiredQty
-					});
+				if (inList) {
+					alreadyInList.push(label(product))
+					return
 				}
-			});
 
-			if (originOutOfStock?.length > 0) {
-				return notification.info({
-					message: `Los siguientes items no tienen stock en origen: ◾ ${originOutOfStock.join(' ◾ ')}`,
-					duration: null
-				});
+				// Primero el estado y después las existencias: un item desactivado
+				// también tiene cantidad 0, así que al revés siempre se reportaría
+				// como un problema de stock. Aplica a todos los movimientos, no solo
+				// a las transferencias
+				if (product.activeInOrigin === false) {
+					inactiveInOrigin.push(label(product))
+					return
+				}
+
+				if (
+					content === DrawerContent.exit ||
+					content === DrawerContent.transfer
+				) {
+					if (product.quantity === 0) {
+						originOutOfStock.push(label(product))
+						return
+					}
+				}
+
+				if (
+					content === DrawerContent.transfer &&
+					!product?.stocks?.includes(toId)
+				) {
+					destinationNotActive.push(label(product))
+					return
+				}
+
+				setAddedProducts(prev => ({
+					...prev,
+					[product.id]: product.quantity
+				}))
+
+				setItemsError(false)
+
+				add({
+					productVariantId: product?.id,
+					stockItemId: product?.stockItemId,
+					name: product.name,
+					quantity: product.requiredQty
+				})
+
+				added.push(label(product))
+			})
+
+			// Todos los grupos juntos. Antes cada bloque hacía `return`, así que un
+			// archivo con dos problemas distintos solo mostraba el primero y había
+			// que subirlo otra vez para descubrir el segundo
+			const groups = [
+				{ reason: 'desactivados en esta bodega', items: inactiveInOrigin },
+				{ reason: 'sin stock en origen', items: originOutOfStock },
+				{
+					reason: 'no activos en la bodega de destino',
+					items: destinationNotActive
+				},
+				{ reason: 'ya estaban en la lista', items: alreadyInList }
+			].filter(group => group.items.length > 0)
+
+			if (groups.length === 0) {
+				return notification.success({
+					message: `Archivo procesado: se agregaron ${added.length} items`
+				})
 			}
 
-			if (destinationNotExist?.length > 0) {
-				return notification.info({
-					message: `Los siguientes items no están activos en destino: ◾${destinationNotExist.join(' - ')}`
-				});
-			}
+			// La notificación solo da el resultado, que es corto, y se cierra sola:
+			// el listado vive en el bloque del formulario, que no se desvanece, así
+			// que no hay nada que perder si el aviso pasa desapercibido
+			notification.warning({
+				message: `Se agregaron ${added.length} de ${productList.length} items`,
+				description: 'Abajo está el detalle de los que quedaron fuera.'
+			})
 
-			notification.success({
-				message: 'Archivo procesado exitosamente'
-			});
+			setBulkRejected({
+				added: added.length,
+				total: productList.length,
+				groups
+			})
 		} catch (error) {
 			console.error(error);
 		}
@@ -220,13 +293,19 @@ const TransactionsProductFormList = ({
 									selectedProduct={selectedProduct}
 									setSelectedProduct={setSelectedProduct}
 									stockId={stockId}
+									includeInactive
 								/>
 								{isAdmin ? (
 									<>
 										<div className='flex gap-2 my-6 px-2 text-gray-500'>
 											<Switch
 												defaultChecked={false}
-												onChange={checked => setShowExcelUploader(checked)}
+												onChange={checked => {
+													setShowExcelUploader(checked)
+													// Sin esto el detalle de la última carga queda a la
+													// vista sin el cargador que lo originó
+													if (!checked) setBulkRejected(null)
+												}}
 												id='switch'
 											/>
 											<label htmlFor='switch'>
@@ -239,6 +318,33 @@ const TransactionsProductFormList = ({
 													handleAddBulkProduct(add, productList)
 												}
 												fromStockId={stockId}
+											/>
+										) : null}
+
+										{bulkRejected ? (
+											<Alert
+												className='!mb-2'
+												type='warning'
+												showIcon
+												closable
+												onClose={() => setBulkRejected(null)}
+												message={`Se agregaron ${bulkRejected.added} de ${bulkRejected.total} items`}
+												description={
+													<div className='max-h-48 overflow-y-auto custom-scrollbar text-xs'>
+														{bulkRejected.groups.map(group => (
+															<div key={group.reason} className='mb-3'>
+																<p className='font-medium'>
+																	{group.items.length} {group.reason}
+																</p>
+																<ul className='list-disc pl-5'>
+																	{group.items.map(item => (
+																		<li key={item}>{item}</li>
+																	))}
+																</ul>
+															</div>
+														))}
+													</div>
+												}
 											/>
 										) : null}
 									</>
