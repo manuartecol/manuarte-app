@@ -1,7 +1,5 @@
 import { notification } from 'antd';
-import PDFDoc from '@/components/admin/common/PDF/PDFDoc';
 import { DiscountType } from '@/types/enums';
-import { pdf } from '@react-pdf/renderer';
 import { whatsAppLibs } from '@/libs/api/whatsapp';
 
 const usePdf = () => {
@@ -32,18 +30,6 @@ const usePdf = () => {
 		return { subtotal, discountValue, discountLabel, total };
 	};
 
-	const generatePDFBlob = async ({
-		isQuote,
-		data
-	}: {
-		isQuote: boolean;
-		data: Quote | Billing;
-	}) => {
-		const blob = await pdf(<PDFDoc isQuote={isQuote} data={data} />).toBlob();
-
-		return blob;
-	};
-
 	const sendPdf = async ({
 		isQuote,
 		serialNumber
@@ -66,7 +52,7 @@ const usePdf = () => {
 		}
 	};
 
-	return { calculateTotals, generatePDFBlob, sendPdf };
+	return { calculateTotals, sendPdf };
 };
 
 export default usePdf;
