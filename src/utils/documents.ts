@@ -1,4 +1,11 @@
-import ExcelJS from 'exceljs';
+/**
+ * Solo el tipo: `import type` se borra al compilar, así que `exceljs` (23 MB)
+ * deja de estar en el grafo de las seis páginas con botón de reporte. La
+ * librería se carga con `await import()` dentro de las dos funciones que la
+ * usan, que ya eran asíncronas. Generar un reporte es una acción puntual, no
+ * algo que haga falta tener compilado al abrir la página.
+ */
+import type ExcelJS from 'exceljs';
 import {
 	CASH_MOVEMENT_CAT_MAP,
 	PAYMENT_METHOD_MAP,
@@ -447,7 +454,9 @@ export const downloadExcel = async ({
 }) => {
 	try {
 		if (data?.length > 0) {
-			const workbook = new ExcelJS.Workbook();
+			const { default: Excel } = await import('exceljs');
+
+			const workbook = new Excel.Workbook();
 			const worksheet = workbook.addWorksheet('Hoja 1');
 			const isUsd = currency === 'USD' || title.toLowerCase().includes('quito');
 
@@ -850,7 +859,9 @@ export const downloadFinancialExcel = async ({
 	date: string;
 }) => {
 	try {
-		const workbook = new ExcelJS.Workbook();
+		const { default: Excel } = await import('exceljs');
+
+		const workbook = new Excel.Workbook();
 		const worksheet = workbook.addWorksheet('Reporte Financiero');
 
 		// ==== Fila 1: Título y Fecha ====
