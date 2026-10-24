@@ -8,6 +8,21 @@ import { ROUTES } from '@/utils/routes';
 import { useMediaQuery } from 'react-responsive';
 import { useDrawerStore } from '@/stores/drawerStore';
 
+/**
+ * Sin `marginTop`. El root es absoluto y ocupa el 100% de la caja de padding
+ * del `Content`, que es su bloque contenedor, así que cualquier margen superior
+ * lo hacía desbordar por esa misma cantidad. Con 1 px ya aparecía una barra de
+ * scroll mínima en el `Content`, y al arrastrarla se movía también el contenido
+ * de detrás del panel.
+ */
+const ROOT_STYLE = { position: 'absolute' } as const;
+
+/**
+ * El padding inferior del cuerpo es el espacio que queda debajo de los botones
+ * de acción de cada panel. Con los 24 px por defecto quedaba demasiado aire.
+ */
+const DRAWER_STYLES = { body: { paddingBottom: 12 } } as const;
+
 const CustomDrawer = () => {
 	const { isOpen, title, content, noCustomer, updateDrawer, closeDrawer } =
 		useDrawerStore();
@@ -49,10 +64,8 @@ const CustomDrawer = () => {
 			maskClosable={false}
 			open={isOpen}
 			getContainer={false}
-			rootStyle={{
-				position: 'absolute',
-				marginTop: 1
-			}}
+			rootStyle={ROOT_STYLE}
+			styles={DRAWER_STYLES}
 			width={smallDrawer && !isMedium ? '50%' : '100%'}
 			height='100%'
 			placement={smallDrawer ? 'right' : 'top'}
