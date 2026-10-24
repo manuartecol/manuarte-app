@@ -97,3 +97,29 @@ body {
 .table-fill-height .ant-spin-nested-loading > div > .ant-spin {
 	max-height: 100%;
 }
+
+/*
+	Paginación siempre al fondo del envoltorio.
+
+	Dentro de .ant-spin-container antd pone la tabla y después la paginación, en
+	flujo normal. Con el envoltorio a alto fijo, la paginación quedaba donde
+	terminara el contenido: al filtrar, los datos se vacían un instante, la tabla
+	se acorta y la paginación sube, y al llegar los datos vuelve a bajar. Pasaba
+	lo mismo con cualquier página de pocas filas.
+
+	Con el contenedor en columna flex y la tabla ocupando el espacio sobrante, la
+	paginación ya no depende del contenido. El ::after del contenedor (la capa
+	que antd atenúa al cargar) es absoluto, así que no entra en el reparto del
+	flex. Y no cambia la medición del cuerpo: esa se calcula con la cabecera y la
+	paginación, que siguen midiendo lo mismo.
+*/
+.table-fill-height .ant-spin-container {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.table-fill-height .ant-spin-container > .ant-table {
+	flex: 1 1 auto;
+	min-height: 0;
+}
