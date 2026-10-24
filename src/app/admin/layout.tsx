@@ -36,7 +36,14 @@ const AdminLayout = ({
 
 	return (
 		<Provider store={store}>
-			<Layout style={{ minHeight: '100vh' }}>
+			{/*
+				`height` y no `minHeight`, más `overflow: hidden`: con `minHeight` el
+				conjunto podía crecer por encima de la ventana y aparecía una barra de
+				scroll en el documento, además de la del contenedor de páginas. Ahora
+				el alto total es exactamente la ventana y el único que desplaza es el
+				`Content`.
+			*/}
+			<Layout style={{ height: '100vh', overflow: 'hidden' }}>
 				<Sider
 					className='p-1'
 					trigger={null}
@@ -116,15 +123,31 @@ const AdminLayout = ({
 							)}
 						</Button>
 					</Header>
+					{/*
+						`overflowX: 'hidden'` y no `overflow: 'auto'`: el Drawer se monta
+						aquí dentro (`getContainer={false}`) y con `position: absolute`,
+						así que mientras entra desde la derecha está en `translateX(100%)`,
+						fuera de esta caja. Con el eje horizontal en `auto` eso saca un
+						scrollbar durante la animación, y al ocupar alto empuja el
+						contenido del panel y el botón de cerrar da un salto cuando
+						desaparece. Nada ancho depende de este scroll: las tablas usan
+						`scroll={{ x: 'max-content' }}` y resuelven el suyo por dentro.
+					*/}
 					<Content
 						style={{
 							position: 'relative',
-							height: '89vh',
+							// Ocupa lo que quede bajo el encabezado, sea cual sea el alto de
+							// la ventana. Antes era `89vh`, que sumado a los 64 px del
+							// encabezado solo cabía en pantallas de más de 582 px de alto.
+							// `minHeight: 0` es lo que permite al hijo flex encoger y
+							// desplazar; sin él vuelve a desbordar hacia el documento
+							flex: 1,
+							minHeight: 0,
 							padding: 24,
-							minHeight: 280,
 							background: colorBgContainer,
 							borderRadius: borderRadiusLG,
-							overflow: 'auto'
+							overflowX: 'hidden',
+							overflowY: 'auto'
 						}}
 					>
 						<CustomDrawer />
