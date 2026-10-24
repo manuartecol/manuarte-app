@@ -1,4 +1,6 @@
 import { Badge, TableColumnsType, Tag } from 'antd';
+import { FilterValue } from 'antd/es/table/interface';
+import { Dayjs } from 'dayjs';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import TransactionActions from '../TransactionAction';
 import useTable from '@/hooks/useTable';
@@ -9,7 +11,23 @@ import {
 	TRANSACTION_TYPES_MAP
 } from '@/utils/mappings';
 
-const TransactionCols = () => {
+interface Props {
+	tableFilters: Record<string, FilterValue | null>;
+}
+
+/**
+ * Los filtros los resuelve el backend, así que las columnas no llevan
+ * `onFilter` y el estado de cada filtro llega por `filteredValue`, igual que en
+ * facturas.
+ *
+ * Antes las cuatro columnas tenían `onFilter`, y antd filtraba además en el
+ * cliente: al marcar un filtro lo aplicaba en el acto a las filas viejas de la
+ * página, y si ninguna coincidía se veía la tabla vacía hasta que llegaba la
+ * respuesta del servidor. Y sin `filteredValue`, al recargar los datos salían
+ * filtrados (la petición usa la URL) pero el checkbox aparecía desmarcado,
+ * porque antd arrancaba su estado interno vacío.
+ */
+const TransactionCols = ({ tableFilters }: Props) => {
 	const { getColumnDateFilterProps } = useTable();
 
 	const transactionsColumns: TableColumnsType<Transaction> = [
@@ -17,6 +35,7 @@ const TransactionCols = () => {
 			title: 'ESTADO',
 			dataIndex: 'state',
 			key: 'state',
+			filteredValue: tableFilters.state || null,
 			filters: [
 				{
 					text: 'Realizado',
@@ -27,7 +46,6 @@ const TransactionCols = () => {
 					value: 'PROGRESS'
 				}
 			],
-			onFilter: (value, record) => record.state.indexOf(value as string) === 0,
 			render: value => {
 				return (
 					<span className='flex items-center gap-1'>
@@ -48,6 +66,7 @@ const TransactionCols = () => {
 			title: 'TIPO',
 			dataIndex: 'type',
 			key: 'type',
+			filteredValue: tableFilters.type || null,
 			filters: [
 				{
 					text: 'Entrada',
@@ -62,7 +81,6 @@ const TransactionCols = () => {
 					value: 'TRANSFER'
 				}
 			],
-			onFilter: (value, record) => record.type.indexOf(value as string) === 0,
 			render: value => {
 				return (
 					<span className='flex items-center'>
@@ -76,6 +94,7 @@ const TransactionCols = () => {
 			title: 'ORIGEN',
 			dataIndex: 'fromId',
 			key: 'fromId',
+			filteredValue: tableFilters.fromId || null,
 			filters: [
 				{
 					text: 'Fabrica Cascajal',
@@ -94,8 +113,6 @@ const TransactionCols = () => {
 					value: '59999031-e678-4d76-849f-38489365aab0'
 				}
 			],
-			onFilter: (value, record) =>
-				record?.fromId?.indexOf(value as string) === 0,
 			render: (_value: string, record) => record?.fromName ?? '--',
 			width: 120
 		},
@@ -103,6 +120,7 @@ const TransactionCols = () => {
 			title: 'DESTINO',
 			dataIndex: 'toId',
 			key: 'toId',
+			filteredValue: tableFilters.toId || null,
 			filters: [
 				{
 					text: 'Fabrica Cascajal',
@@ -121,7 +139,6 @@ const TransactionCols = () => {
 					value: '59999031-e678-4d76-849f-38489365aab0'
 				}
 			],
-			onFilter: (value, record) => record?.toId?.indexOf(value as string) === 0,
 			render: (_value: string, record) => record?.toName ?? '--',
 			width: 120
 		},
@@ -137,7 +154,12 @@ const TransactionCols = () => {
 			title: 'FECHA',
 			dataIndex: 'createdDate',
 			key: 'createdDate',
-			...getColumnDateFilterProps('createdDate'),
+			filteredValue: tableFilters.createdDate || null,
+			...getColumnDateFilterProps(
+				'createdDate',
+				false,
+				tableFilters.createdDate as [Dayjs | null, Dayjs | null] | null
+			),
 			render: (value: string) => (
 				<span>{value ? formatDate(value) : '--'}</span>
 			),

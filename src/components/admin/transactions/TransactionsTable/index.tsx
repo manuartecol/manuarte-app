@@ -21,9 +21,9 @@ const TransactionsTable = ({
 	const { transactions, transactionsPagination } = useSelector(
 		(state: RootState) => state.transaction
 	);
-	const { transactionsColumns } = TransactionCols();
 	const { fetchTransactions, isLoading } = useTransactionService();
-	const { updateFilterParams } = useFilters();
+	const { updateFilterParams, synchronizeFilters, tableFilters } = useFilters();
+	const { transactionsColumns } = TransactionCols({ tableFilters });
 	const dispatch = useDispatch();
 
 	const page = Number(searchParams.page) || 1;
@@ -52,6 +52,12 @@ const TransactionsTable = ({
 		fetchShops();
 		fetchTransactions({ page, pageSize, ...filters });
 	}, [page, pageSize, ...Object.values(filters)]);
+
+	// Lleva los filtros de la URL al estado de las columnas. Sin esto, al recargar
+	// los datos salían filtrados pero los checkboxes aparecían desmarcados
+	useEffect(() => {
+		synchronizeFilters(filters, 'createdDate');
+	}, [searchParams]);
 
 	const handleTableChange = (
 		pagination: TablePaginationConfig,
