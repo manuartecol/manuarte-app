@@ -39,7 +39,14 @@ export const authServices = {
 
 			return null;
 		} catch (error) {
-			console.log(error);
+			// Mismo motivo que en auth.ts: el error completo de axios serializa la
+			// configuración de la petición, y aquí eso incluye la cabecera
+			// Authorization con el refresh token
+			console.error(
+				`[auth] token refresh failed: ${
+					error instanceof Error ? error.message : 'unknown error'
+				}`
+			);
 			return null;
 		}
 	}

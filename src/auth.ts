@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { authServices } from './services/authServices';
@@ -35,7 +36,22 @@ export const {
 
 					return null;
 				} catch (error) {
-					console.error(error);
+					/**
+					 * Nunca el error completo. Un `AxiosError` serializa `config.data`,
+					 * que en este endpoint es el cuerpo del login, así que cada intento
+					 * fallido escribía la contraseña en claro en los logs de producción.
+					 * Del error solo interesan el estado y el motivo.
+					 */
+					const status = isAxiosError(error)
+						? error.response?.status
+						: undefined;
+
+					console.error(
+						`[auth] login failed${status ? ` with status ${status}` : ''}: ${
+							error instanceof Error ? error.message : 'unknown error'
+						}`
+					);
+
 					return null;
 				}
 			}
