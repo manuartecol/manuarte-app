@@ -1,26 +1,21 @@
-import { Skeleton, Tooltip } from 'antd';
+import { DatePicker, Skeleton, Tooltip } from 'antd';
 import { formatCurrency, formatDate } from '@/utils/formats';
 import { useSelector } from 'react-redux';
 import { BiMoneyWithdraw } from 'react-icons/bi';
-import generatePicker from 'antd/es/date-picker/generatePicker';
 import { IoInformationCircleOutline } from 'react-icons/io5';
 import CustomTable from '../../common/display-data/Table';
 import AddButton from '../../common/ui/AddButton';
 import { CurrentCashSessionStatus, ModalContent } from '@/types/enums';
 import CashMovementCols from './cols';
-import esES from 'antd/es/date-picker/locale/es_ES';
-import momentGenerateConfig from 'rc-picker/lib/generate/moment';
-import moment, { Moment } from 'moment';
-import 'moment/locale/es';
+import dayjs, { Dayjs } from 'dayjs';
 
-const DatePicker = generatePicker<Moment>(momentGenerateConfig);
-moment.locale('es');
-
+// Igual que en BankTransfers: el `DatePicker` de antd ya trabaja con dayjs, así
+// que sobra el adaptador de moment. El locale lo pone el `ConfigProvider`.
 interface Props {
 	shopId: string;
 	isLoading: boolean;
-	onChangeDate: (date: Moment) => void;
-	selectedDate: Moment | null;
+	onChangeDate: (date: Dayjs) => void;
+	selectedDate: Dayjs | null;
 }
 
 const CashFlow = ({ shopId, isLoading, onChangeDate, selectedDate }: Props) => {
@@ -35,11 +30,10 @@ const CashFlow = ({ shopId, isLoading, onChangeDate, selectedDate }: Props) => {
 		<div className='space-y-4'>
 			<div className='flex justify-between'>
 				<DatePicker
-					value={selectedDate || moment(data?.openedAt)}
+					value={selectedDate || dayjs(data?.openedAt)}
 					format={value => value.format('DD-MMM-YYYY').toUpperCase()}
-					locale={esES}
 					disabledDate={current => {
-						return current && current > moment().endOf('day');
+						return current && current > dayjs().endOf('day');
 					}}
 					onChange={onChangeDate}
 					allowClear={false}

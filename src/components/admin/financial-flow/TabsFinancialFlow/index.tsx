@@ -13,7 +13,7 @@ import {
 import { RiSafe2Fill, RiSafe2Line } from 'react-icons/ri';
 import CashFlow from '../CashFlow';
 import BankTransfers from '../BankTransfers';
-import { Moment } from 'moment';
+import { Dayjs } from 'dayjs';
 
 const TabsFinancialFlow = ({ shopId }: { shopId: string | undefined }) => {
 	const { currentCashSession } = useSelector(
@@ -21,7 +21,7 @@ const TabsFinancialFlow = ({ shopId }: { shopId: string | undefined }) => {
 	);
 	const [isLoading, setIsLoading] = useState(true);
 	const [isCash, setIsCash] = useState(true);
-	const [selectedDate, setSelectedDate] = useState<Moment | null>(null);
+	const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
 	const dispatch = useDispatch();
 	const { status, canOpen, data } = currentCashSession;
 
@@ -50,7 +50,7 @@ const TabsFinancialFlow = ({ shopId }: { shopId: string | undefined }) => {
 		fetchCashSession();
 	}, [shopId]);
 
-	const onChangeDate = async (date: Moment) => {
+	const onChangeDate = async (date: Dayjs) => {
 		const formattedDate = date?.toDate().toISOString();
 		setSelectedDate(date);
 

@@ -3,7 +3,7 @@ import { billingLibs, BillingParams } from '@/libs/api/billing';
 import { BillingStatus } from '@/types/enums';
 import { downloadExcel, generateBillingsData } from '@/utils/documents';
 import { Button, Tooltip } from 'antd';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import { useState } from 'react';
 import { IoMdDownload } from 'react-icons/io';
 
@@ -48,7 +48,7 @@ const GenerateBillingReportButton = ({ shopSlug, searchParams }: Props) => {
 
 				downloadExcel({
 					data: excelData,
-					fileName: `${shopSlug}-reporte-ventas-${moment(date).format('YYYYMMDD')}`,
+					fileName: `${shopSlug}-reporte-ventas-${dayjs(date).format('YYYYMMDD')}`,
 					title,
 					date
 				});

@@ -1,4 +1,4 @@
-import { formatUserExtraPermissions } from './formats';
+import { formatUserExtraPermissions } from './permissions';
 import { ROUTES } from './routes';
 
 export const generatePermissionOptions = (

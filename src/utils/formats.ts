@@ -1,7 +1,14 @@
-import moment from 'moment';
-import { PERMISSION_MAP } from './mappings';
-import 'moment/locale/es';
-moment.locale('es');
+/**
+ * `dayjs` y no `moment`: es la librería de fechas que usa antd v5 de forma
+ * nativa, ya estaba en el proyecto (la usan el dashboard, las tablas de
+ * facturas y cotizaciones, `useFilters` y `useTable`) y ocupa 1,7 MB frente a
+ * los 5,2 MB de moment. Este archivo lo importan 42 otros, así que moment
+ * llegaba al grafo de 14 de las 18 rutas del panel.
+ */
+import dayjs from 'dayjs';
+import 'dayjs/locale/es';
+
+dayjs.locale('es');
 
 const units = ['cc', 'kg', 'mm', 'cm', 'm', 'l', 'ml'];
 
@@ -62,28 +69,18 @@ export const formatInputCurrency = (value: number | undefined) => {
 export const normalizeAmount = (num: number, decimals = 2) =>
 	Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
 
-export const formatUserExtraPermissions = (
-	extraPermissions: { id: string; name: string }[]
-) => {
-	try {
-		return extraPermissions?.map(permission => ({
-			...permission,
-			name: PERMISSION_MAP[permission.name] || permission.name
-		}));
-	} catch (error) {
-		console.error(error);
-	}
-};
+// `formatUserExtraPermissions` se movió a `utils/permissions.ts`: la importaba
+// el middleware a través de `utils/auth.ts` y arrastraba `moment` con ella.
 
 export const formatDate = (date: Date | string, showTime: boolean = false) => {
 	try {
 		if (!date) return '--';
 
-		const m = moment(date);
+		const d = dayjs(date);
 
 		return showTime
-			? m.format('DD-MMM-YYYY, h:mm A').toUpperCase()
-			: m.startOf('day').format('DD-MMM-YYYY').toUpperCase();
+			? d.format('DD-MMM-YYYY, h:mm A').toUpperCase()
+			: d.startOf('day').format('DD-MMM-YYYY').toUpperCase();
 	} catch (error) {
 		console.error(error);
 	}
@@ -93,7 +90,7 @@ export const formatMonthYear = (date: Date | string) => {
 	try {
 		if (!date) return '--';
 
-		return moment(date).format('MMM-YYYY').toUpperCase();
+		return dayjs(date).format('MMM-YYYY').toUpperCase();
 	} catch (error) {
 		console.error(error);
 	}

@@ -6,7 +6,8 @@ import useForm from '@/hooks/useForm';
 import { staffLibs } from '@/libs/api/staff';
 import { useModalStore } from '@/stores/modalStore';
 import { generatePermissionOptions } from '@/utils/auth';
-import { formatToTitleCase, formatUserExtraPermissions } from '@/utils/formats';
+import { formatToTitleCase } from '@/utils/formats';
+import { formatUserExtraPermissions } from '@/utils/permissions';
 import { selectFilterOption } from '../../utils';
 
 const PermissionsForm = () => {
