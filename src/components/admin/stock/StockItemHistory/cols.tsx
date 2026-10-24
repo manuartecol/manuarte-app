@@ -1,4 +1,6 @@
 import { TableColumnsType, Tag, Tooltip } from 'antd';
+import { FilterValue } from 'antd/es/table/interface';
+import { Dayjs } from 'dayjs';
 import { IoInformationCircleOutline } from 'react-icons/io5';
 import { TiArrowDown, TiArrowUp } from 'react-icons/ti';
 import CopyableText from '../../common/ui/CopyableText';
@@ -8,7 +10,16 @@ import { formatDate, formatToTitleCase } from '@/utils/formats';
 import { TRANSACTION_TYPES_MAP } from '@/utils/mappings';
 import { TAG_COLORS } from '../../consts';
 
-const StockItemHistoryCols = () => {
+interface Props {
+	tableFilters: Record<string, FilterValue | null>;
+}
+
+/**
+ * Los tres filtros los resuelve el backend (`type`, `identifier` y el rango de
+ * fechas), así que ninguna columna lleva `onFilter` y el estado llega por
+ * `filteredValue` desde la URL, como en facturas y movimientos.
+ */
+const StockItemHistoryCols = ({ tableFilters }: Props) => {
 	const { getColumnDateFilterProps, getColumnSearchProps } = useTable();
 
 	const stockItemsHistoryColumns: TableColumnsType<StockItemHistory> = [
@@ -16,7 +27,12 @@ const StockItemHistoryCols = () => {
 			title: 'FECHA',
 			dataIndex: 'createdDate',
 			key: 'createdDate',
-			...getColumnDateFilterProps('createdDate'),
+			filteredValue: tableFilters.createdDate || null,
+			...getColumnDateFilterProps(
+				'createdDate',
+				false,
+				tableFilters.createdDate as [Dayjs | null, Dayjs | null] | null
+			),
 			render: (value: string) => (
 				<span>{value ? formatDate(value) : '--'}</span>
 			),
@@ -26,6 +42,7 @@ const StockItemHistoryCols = () => {
 			title: 'TIPO',
 			dataIndex: 'type',
 			key: 'type',
+			filteredValue: tableFilters.type || null,
 			filters: [
 				{
 					text: 'Entrada',
@@ -44,7 +61,6 @@ const StockItemHistoryCols = () => {
 					value: 'BILLING'
 				}
 			],
-			onFilter: (value, record) => record.type.indexOf(value as string) === 0,
 			render: (value, record) => {
 				const toolTipTitle = `De ${record.fromName} a ${record.toName} `;
 
@@ -69,6 +85,7 @@ const StockItemHistoryCols = () => {
 			title: 'IDENTIFICADOR',
 			dataIndex: 'identifier',
 			key: 'identifier',
+			filteredValue: tableFilters.identifier || null,
 			...getColumnSearchProps('identifier'),
 			render: value =>
 				value ? (

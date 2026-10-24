@@ -7,6 +7,11 @@ export type BalanceMovementsParams = {
 	currency: string;
 	type?: string;
 	category?: string;
+	/**
+	 * Puede llegar en la URL porque la tabla escribe ahí todos sus filtros, pero
+	 * el backend no filtra por él: la columna lo resuelve en el cliente.
+	 */
+	paymentMethod?: string;
 	dateStart?: string;
 	dateEnd?: string;
 };

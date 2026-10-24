@@ -21,8 +21,10 @@ const BalanceTable = ({
 	params: { id: string };
 	searchParams: BalanceMovementsParams;
 }) => {
+	const { updateFilterParams, synchronizeFilters, tableFilters } = useFilters();
 	const { balanceMovementColumns } = BalanceCols({
-		currency: searchParams.currency
+		currency: searchParams.currency,
+		tableFilters
 	});
 	const {
 		customerBalanceMovements,
@@ -30,7 +32,6 @@ const BalanceTable = ({
 		balance
 	} = useSelector((state: RootState) => state.customer);
 	const { fetchMovements, fetchBalance, isLoading } = useCustomerService();
-	const { updateFilterParams } = useFilters();
 
 	const page = Number(searchParams.page) || 1;
 	const pageSize = Number(searchParams.pageSize) || 30;
@@ -46,6 +47,16 @@ const BalanceTable = ({
 	useEffect(() => {
 		fetchMovements(params?.id, searchParams);
 	}, [page, pageSize, ...Object.values(filters)]);
+
+	// Lleva los filtros de la URL al estado de las columnas. El método de pago va
+	// aparte porque no está en `filters`: el backend no filtra por él, pero su
+	// checkbox tiene que seguir marcado al recargar igual que los demás
+	useEffect(() => {
+		synchronizeFilters(
+			{ ...filters, paymentMethod: searchParams.paymentMethod },
+			'createdDate'
+		);
+	}, [searchParams]);
 
 	const handleTableChange = (
 		pagination: TablePaginationConfig,

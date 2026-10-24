@@ -55,7 +55,9 @@ const QuoteCols = ({
 					value: 'OVERDUE'
 				}
 			],
-			onFilter: (value, record) => record.status.indexOf(value as string) === 0,
+			// Sin `onFilter`: el estado lo filtra el backend. Con él, antd lo aplicaba
+			// también a las filas que ya estaban en pantalla y se veía la tabla vacía
+			// hasta que llegaba la respuesta del servidor
 			render: value => QUOTE_STATUS_MAP[value],
 			width: 140
 		},

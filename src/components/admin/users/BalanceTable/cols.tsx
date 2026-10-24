@@ -1,4 +1,6 @@
 import { TableColumnsType, Tag } from 'antd';
+import { FilterValue } from 'antd/es/table/interface';
+import { Dayjs } from 'dayjs';
 import useTable from '@/hooks/useTable';
 import { formatCurrency, formatDate } from '@/utils/formats';
 import {
@@ -10,7 +12,19 @@ import {
 	ECU_PAYMENT_METHOD_FILTER
 } from '../../consts';
 
-const BalanceCols = ({ currency }: { currency: string }) => {
+interface Props {
+	currency: string;
+	tableFilters: Record<string, FilterValue | null>;
+}
+
+/**
+ * `type`, `category` y el rango de fechas los filtra el backend, así que esas
+ * columnas no llevan `onFilter`. El método de pago es la excepción: el endpoint
+ * de movimientos no lo admite (solo `currency`, `type` y `category`), así que
+ * su `onFilter` se queda, porque es el único filtro que tiene. Eso significa
+ * que solo filtra la página que está en pantalla, no todo el historial.
+ */
+const BalanceCols = ({ currency, tableFilters }: Props) => {
 	const { getColumnDateFilterProps } = useTable();
 
 	const balanceMovementColumns: TableColumnsType<CustomerBalanceMovement> = [
@@ -18,6 +32,7 @@ const BalanceCols = ({ currency }: { currency: string }) => {
 			title: 'TIPO',
 			dataIndex: 'type',
 			key: 'type',
+			filteredValue: tableFilters.type || null,
 			filters: [
 				{
 					text: 'Crédito',
@@ -28,7 +43,6 @@ const BalanceCols = ({ currency }: { currency: string }) => {
 					value: 'DEBIT'
 				}
 			],
-			onFilter: (value, record) => record.type.indexOf(value as string) === 0,
 			render: value => (
 				<Tag color={value === 'CREDIT' ? '#10b981' : '#E53535'}>
 					{value === 'CREDIT' ? 'CRÉDITO' : 'DÉBITO'}
@@ -40,6 +54,7 @@ const BalanceCols = ({ currency }: { currency: string }) => {
 			title: 'CATEGORÍA',
 			dataIndex: 'category',
 			key: 'category',
+			filteredValue: tableFilters.category || null,
 			filters: [
 				{
 					text: 'Abono',
@@ -62,8 +77,6 @@ const BalanceCols = ({ currency }: { currency: string }) => {
 					value: 'OTHER'
 				}
 			],
-			onFilter: (value, record) =>
-				record.category.indexOf(value as string) === 0,
 			render: value => (
 				<Tag color='blue'>{BALANCE_MOVEMENT_CATEGORY_MAP[value]}</Tag>
 			),
@@ -73,6 +86,7 @@ const BalanceCols = ({ currency }: { currency: string }) => {
 			title: 'MÉTODO DE PAGO',
 			dataIndex: 'paymentMethod',
 			key: 'paymentMethod',
+			filteredValue: tableFilters.paymentMethod || null,
 			filters:
 				currency === 'COP'
 					? COL_PAYMENT_METHOD_FILTER
@@ -114,7 +128,12 @@ const BalanceCols = ({ currency }: { currency: string }) => {
 			title: 'FECHA',
 			dataIndex: 'createdDate',
 			key: 'createdDate',
-			...getColumnDateFilterProps('createdDate'),
+			filteredValue: tableFilters.createdDate || null,
+			...getColumnDateFilterProps(
+				'createdDate',
+				false,
+				tableFilters.createdDate as [Dayjs | null, Dayjs | null] | null
+			),
 			render: value => <span>{formatDate(value)}</span>,
 			width: 120
 		}

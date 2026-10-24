@@ -28,8 +28,8 @@ const StockItemHistory = ({
 		useSelector((state: RootState) => state.stock);
 	const { productName, productVariantName, quantity, maxQty, minQty } =
 		stockItem ?? {};
-	const { stockItemsHistoryColumns } = StockItemHistoryCols();
-	const { updateFilterParams } = useFilters();
+	const { updateFilterParams, synchronizeFilters, tableFilters } = useFilters();
+	const { stockItemsHistoryColumns } = StockItemHistoryCols({ tableFilters });
 	const { shopSlug } = useParams();
 
 	const page = Number(searchParams.page) || 1;
@@ -52,6 +52,12 @@ const StockItemHistory = ({
 			});
 		}
 	}, [page, pageSize, ...Object.values(filters)]);
+
+	// Lleva los filtros de la URL al estado de las columnas, para que al recargar
+	// sigan marcados los que están aplicados
+	useEffect(() => {
+		synchronizeFilters(filters, 'createdDate');
+	}, [searchParams]);
 
 	const statusColor =
 		quantity !== undefined && maxQty !== undefined && minQty !== undefined

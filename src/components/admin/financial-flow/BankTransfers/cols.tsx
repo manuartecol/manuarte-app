@@ -54,7 +54,10 @@ const BankTransfersCols = () => {
 			title: 'CLIENTE',
 			dataIndex: 'customerName',
 			key: 'customerName',
-			...getColumnSearchProps('customerName'),
+			// `true` porque esta tabla filtra en el cliente: carga los movimientos
+			// del día completos y no manda los filtros al backend. Sin él la búsqueda
+			// no llevaba `onFilter` y no filtraba nada
+			...getColumnSearchProps('customerName', true),
 			render: (value: string) => (value ? <CopyableText text={value} /> : '--'),
 			width: 160
 		},
@@ -62,7 +65,7 @@ const BankTransfersCols = () => {
 			title: 'REFERENCIA',
 			dataIndex: 'reference',
 			key: 'reference',
-			...getColumnSearchProps('reference'),
+			...getColumnSearchProps('reference', true),
 			render: (value: string) => (value ? <CopyableText text={value} /> : '--'),
 			width: 160
 		},
