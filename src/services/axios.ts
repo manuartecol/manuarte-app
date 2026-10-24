@@ -1,7 +1,10 @@
 import axios from 'axios';
 import { ENV } from '@/config/env';
 import { auth } from '@/auth';
-import { getSession } from 'next-auth/react';
+import {
+	clearCachedAccessToken,
+	getClientAccessToken
+} from '@/libs/api/access-token';
 // import { authServices } from './authServices';
 // import { doLogout } from '@/app/actions';
 
@@ -20,18 +23,16 @@ export const axiosPrivate = axios.create({
 	}
 });
 
+// Misma caché de token que `libs/api/axios.ts`: las dos instancias comparten
+// `libs/api/access-token.ts` para no pedir la sesión por red en cada petición.
+// Aquí llegan dashboardServices, shopServices, cityServices,
+// financialFlowServices y productCategoryServices.
 axiosPrivate.interceptors.request.use(
 	async config => {
 		try {
-			let accessToken = null;
-
-			if (config?.server) {
-				const session = await auth();
-				accessToken = session?.accessToken;
-			} else {
-				const session = await getSession();
-				accessToken = session?.accessToken;
-			}
+			const accessToken = config?.server
+				? (await auth())?.accessToken
+				: await getClientAccessToken();
 
 			if (accessToken) {
 				config.headers.Authorization = `Bearer ${accessToken}`;
@@ -43,6 +44,14 @@ axiosPrivate.interceptors.request.use(
 		return config;
 	},
 	error => {
+		return Promise.reject(error);
+	}
+);
+
+axiosPrivate.interceptors.response.use(
+	response => response,
+	error => {
+		if (error?.response?.status === 401) clearCachedAccessToken();
 		return Promise.reject(error);
 	}
 );
