@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button, Layout, Skeleton, theme } from 'antd';
 import {
 	TbLayoutSidebarLeftCollapseFilled,
@@ -24,11 +24,7 @@ const AdminLayout = ({
 }>) => {
 	const [collapsed, setCollapsed] = useState(false);
 	const [hide, setHide] = useState(false);
-	const { data: session, update } = useSession();
-
-	useEffect(() => {
-		update();
-	}, []);
+	const { data: session, status } = useSession();
 
 	const {
 		token: { colorBgContainer, borderRadiusLG }
@@ -104,14 +100,14 @@ const AdminLayout = ({
 								padding: '0 24px'
 							}}
 						>
-							{session ? (
-								<div>
-									<span className='font-bold me-2'>
-										{formatToTitleCase(session?.user?.roleName as string)}:
-									</span>{' '}
-									{session?.user?.email}
-								</div>
-							) : (
+							{/*
+								Se mira `status`, no si `session` tiene valor. Con la sesión en
+								null (petición fallida, o sin iniciar sesión) el esqueleto se
+								quedaba puesto para siempre, porque "cargando" y "sin sesión"
+								se veían igual, y solo recargando se arreglaba. Sin sesión no
+								se dibuja nada: de redirigir al login se encarga el middleware.
+							*/}
+							{status === 'loading' ? (
 								<Skeleton.Button
 									active
 									style={{
@@ -120,7 +116,14 @@ const AdminLayout = ({
 										justifyItems: 'center'
 									}}
 								/>
-							)}
+							) : session ? (
+								<div>
+									<span className='font-bold me-2'>
+										{formatToTitleCase(session?.user?.roleName as string)}:
+									</span>{' '}
+									{session?.user?.email}
+								</div>
+							) : null}
 						</Button>
 					</Header>
 					{/*
