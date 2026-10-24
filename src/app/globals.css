@@ -70,3 +70,30 @@ body {
 .custom-disabled-select .ant-select-disabled .ant-select-selector {
 	color: #000000E0 !important;
 }
+
+/*
+	Overlay de carga de la tabla a pantalla completa del envoltorio. Estructura
+	que renderiza antd (leída de spin/index.js y table/InternalTable.js):
+
+	  .ant-table-wrapper              height: 100% (el style del <Table>)
+	    .ant-spin-nested-loading      height automática  <- se fija aquí
+	      div                         solo contiene el overlay absoluto
+	        .ant-spin                 absolute, height 100%, max-height 400 px
+	          .ant-spin-dot           top: 50%
+	      .ant-spin-container         la tabla
+
+	El punto se centra al 50% del overlay, el overlay mide el 100% de
+	.ant-spin-nested-loading, y ese medía lo que mide la tabla. Mientras carga
+	la tabla es solo la cabecera, así que el spinner quedaba arriba.
+
+	No se le da alto al div intermedio: solo contiene al overlay, que es
+	absoluto, y tiene que seguir sin ocupar sitio. Si se le da, empuja la tabla
+	por debajo del overlay y aparece scroll.
+*/
+.table-fill-height .ant-spin-nested-loading {
+	height: 100%;
+}
+
+.table-fill-height .ant-spin-nested-loading > div > .ant-spin {
+	max-height: 100%;
+}
