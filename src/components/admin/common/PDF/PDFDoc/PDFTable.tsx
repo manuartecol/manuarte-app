@@ -9,7 +9,12 @@ interface Props {
 
 const styles = StyleSheet.create({
 	tableContainer: {
-		marginBottom: 50,
+		// Padding y no margin: cuando la tabla terminaba en los últimos 50 pt de
+		// la página, el margen no cabía ni ahí ni en la siguiente y react-pdf
+		// reintentaba el salto una y otra vez, congelando la pestaña hasta que
+		// cortaba (pasaba con 36, 37, 62 y 63 filas). El padding sí se puede
+		// partir entre páginas y deja el mismo espacio
+		paddingBottom: 50,
 		width: '100%',
 		fontSize: 10
 	},
