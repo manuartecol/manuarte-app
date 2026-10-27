@@ -1,4 +1,5 @@
 import { notification } from 'antd';
+import { AxiosError } from 'axios';
 import { DiscountType } from '@/types/enums';
 import { whatsAppLibs } from '@/libs/api/whatsapp';
 
@@ -48,7 +49,14 @@ const usePdf = () => {
 				});
 			}
 		} catch (error) {
-			notification.error({ message: 'Error al enviar documento' });
+			console.error(error);
+			// El mensaje del backend distingue un PDF que no se pudo generar (que no
+			// se arregla reintentando) de un fallo al enviarlo. El genérico queda
+			// para cuando no hay respuesta, como un 502 con el servidor caído
+			const message =
+				(error instanceof AxiosError && error.response?.data?.message) ||
+				'Error al enviar documento';
+			notification.error({ message });
 		}
 	};
 
