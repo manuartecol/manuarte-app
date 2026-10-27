@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { Alert, Button, Spin } from 'antd';
 import PDFActions from '../PDFActions';
 import PDFPreview from '../PDFPreview';
 import { quoteLibs } from '@/libs/api/quote';
@@ -13,15 +14,28 @@ interface Props {
 
 const PDFContainer = ({ shopSlug, serialNumber, isQuote }: Props) => {
 	const [data, setData] = useState<Quote | Billing>();
+	const [isLoading, setIsLoading] = useState(true);
+	/**
+	 * Los wrappers de `libs/api` capturan el error y devuelven `undefined`. Sin
+	 * distinguirlo, una petición fallida dejaba el spinner girando para siempre.
+	 */
+	const [hasFailed, setHasFailed] = useState(false);
 	const contentRef = useRef<HTMLDivElement>(null);
 
 	const fetchData = async () => {
-		if (serialNumber) {
+		if (!serialNumber) return;
+
+		setIsLoading(true);
+		setHasFailed(false);
+		try {
 			const data = isQuote
 				? await quoteLibs.getOne({ serialNumber })
 				: await billingLibs.getOne({ serialNumber });
 
-			setData(data);
+			if (data) setData(data);
+			else setHasFailed(true);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -31,10 +45,16 @@ const PDFContainer = ({ shopSlug, serialNumber, isQuote }: Props) => {
 
 	return (
 		<>
-			<PDFActions
-				isQuote={isQuote}
-				data={isQuote ? (data as Quote) : (data as Billing)}
-			/>
+			{/*
+				Solo con datos: antes se mostraban durante la carga, y "Descargar"
+				generaba en el navegador un PDF de un documento que aún no había llegado
+			*/}
+			{data ? (
+				<PDFActions
+					isQuote={isQuote}
+					data={isQuote ? (data as Quote) : (data as Billing)}
+				/>
+			) : null}
 
 			{/*
 				Ocupa el alto que deja la página, en vez del `max-h-[480px]` fijo que en
@@ -44,7 +64,25 @@ const PDFContainer = ({ shopSlug, serialNumber, isQuote }: Props) => {
 				no salta al llegar los datos
 			*/}
 			<div className='flex flex-col flex-1 min-h-[320px] shadow-[6px_6px_24px_rgba(0,0,0,0.25)] rounded-lg'>
-				{data ? (
+				{isLoading ? (
+					<div className='flex flex-1 items-center justify-center'>
+						<Spin size='large' />
+					</div>
+				) : hasFailed ? (
+					<div className='m-4'>
+						<Alert
+							type='error'
+							showIcon
+							message={`No se pudo cargar ${isQuote ? 'la cotización' : 'la factura'}`}
+							description='Puede ser un problema de conexión.'
+							action={
+								<Button size='small' danger onClick={fetchData}>
+									Reintentar
+								</Button>
+							}
+						/>
+					</div>
+				) : data ? (
 					<div className='m-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar'>
 						<PDFPreview
 							isQuote={isQuote}
