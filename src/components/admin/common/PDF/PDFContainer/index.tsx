@@ -36,9 +36,16 @@ const PDFContainer = ({ shopSlug, serialNumber, isQuote }: Props) => {
 				data={isQuote ? (data as Quote) : (data as Billing)}
 			/>
 
-			<div className='shadow-[6px_6px_24px_rgba(0,0,0,0.25)] rounded-lg'>
+			{/*
+				Ocupa el alto que deja la página, en vez del `max-h-[480px]` fijo que en
+				pantallas grandes dejaba media pantalla vacía debajo. El mínimo evita que
+				en ventanas bajas quede aplastado: ahí es el contenido del layout el que
+				desplaza. La tarjeta se reserva entera desde el primer render, así que
+				no salta al llegar los datos
+			*/}
+			<div className='flex flex-col flex-1 min-h-[320px] shadow-[6px_6px_24px_rgba(0,0,0,0.25)] rounded-lg'>
 				{data ? (
-					<div className='m-4 max-h-[480px] overflow-y-auto custom-scrollbar'>
+					<div className='m-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar'>
 						<PDFPreview
 							isQuote={isQuote}
 							data={data}

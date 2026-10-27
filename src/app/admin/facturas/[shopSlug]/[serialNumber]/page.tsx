@@ -18,7 +18,7 @@ const BillingDetailPage = (props: BillingDetailPageProps) => {
 	const shopName = shopSlug.toUpperCase().replace('-', ' ');
 
 	return (
-		<div className='flex flex-col gap-6'>
+		<div className='flex flex-col gap-6 h-full'>
 			<div className='flex flex-wrap items-center'>
 				<GoBack />
 				<h2 className='text-lg min-[796px]:text-2xl font-semibold ps-4'>
