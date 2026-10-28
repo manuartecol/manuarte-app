@@ -19,6 +19,7 @@ import { useWatch } from 'antd/es/form/Form';
 import { useSession } from 'next-auth/react';
 import { useDrawerStore } from '@/stores/drawerStore';
 import ProductsExcelUploader from '../ProductsExcelUploader';
+import CopyableText from '../../ui/CopyableText';
 
 interface TransactionsProductFormListProps {
 	form: FormInstance;
@@ -26,6 +27,18 @@ interface TransactionsProductFormListProps {
 	setItemsError: Dispatch<SetStateAction<boolean>>;
 	shops: Shop[];
 }
+
+/**
+ * Una fila del resumen de la carga masiva. El código va aparte del resto para
+ * poder copiarlo y buscarlo en el Excel, y las cantidades como números para
+ * pintarlas en su propia línea: metidas en el texto se confundían con el
+ * nombre del producto.
+ */
+type BulkUploadEntry = {
+	code: string;
+	name: string;
+	shortage?: { requested: number; available: number };
+};
 
 type AddItemFormListFn = (
 	defaultValue?: StoreValue,
@@ -47,12 +60,13 @@ const TransactionsProductFormList = ({
 	 * Resultado de la última carga por archivo. Vive en el formulario y no en una
 	 * notificación porque es una lista de trabajo: el usuario la necesita a la
 	 * vista mientras corrige el Excel, y con un archivo de 50 filas no cabe en un
-	 * aviso flotante.
+	 * aviso flotante. Además de los rechazados incluye los que entraron con menos
+	 * cantidad de la pedida por falta de stock.
 	 */
 	const [bulkRejected, setBulkRejected] = useState<{
 		added: number;
 		total: number;
-		groups: { reason: string; items: string[] }[];
+		groups: { reason: string; items: BulkUploadEntry[] }[];
 	} | null>(null);
 	const { content, dataToHandle } = useDrawerStore.getState();
 	const itemsList: ProductVariantWithStock[] = Form.useWatch('items', form);
@@ -169,16 +183,33 @@ const TransactionsProductFormList = ({
 				});
 			}
 
-			const added: string[] = []
-			const inactiveInOrigin: string[] = []
-			const originOutOfStock: string[] = []
-			const destinationNotActive: string[] = []
-			const alreadyInList: string[] = []
+			const added: BulkUploadEntry[] = []
+			const inactiveInOrigin: BulkUploadEntry[] = []
+			const originOutOfStock: BulkUploadEntry[] = []
+			const destinationNotActive: BulkUploadEntry[] = []
+			const alreadyInList: BulkUploadEntry[] = []
+			const partialStock: BulkUploadEntry[] = []
+			const repeatedInFile: BulkUploadEntry[] = []
+			/**
+			 * Presentaciones ya procesadas en esta misma carga. `itemsList` es el
+			 * estado del formulario antes del archivo y no se actualiza dentro de
+			 * este bucle, así que un código repetido en el Excel pasaba los dos
+			 * filtros y entraba dos veces. Con el ajuste a lo disponible era peor:
+			 * cada copia se llevaba todo el stock y cada fila por separado pasaba la
+			 * validación, aunque entre las dos pidieran el doble de lo que hay.
+			 */
+			const seenInFile = new Set<string>()
 
 			// Se lista con el código delante: es lo que permite encontrar la fila en
 			// el Excel para corregirla. Con el nombre solo hay que ir adivinando.
-			const label = (product: any) =>
-				`${product.productCode} · ${product.name}`
+			const label = (
+				product: any,
+				shortage?: BulkUploadEntry['shortage']
+			): BulkUploadEntry => ({
+				code: String(product.productCode),
+				name: product.name,
+				shortage
+			})
 
 			productList.forEach(product => {
 				if (!product) return
@@ -196,6 +227,15 @@ const TransactionsProductFormList = ({
 					return
 				}
 
+				// La cantidad de las dos filas ya es la de la primera (el cargador
+				// toma la primera coincidencia), así que no se pierde nada al quedarse
+				// con una
+				if (seenInFile.has(product.id)) {
+					repeatedInFile.push(label(product))
+					return
+				}
+				seenInFile.add(product.id)
+
 				// Primero el estado y después las existencias: un item desactivado
 				// también tiene cantidad 0, así que al revés siempre se reportaría
 				// como un problema de stock. Aplica a todos los movimientos, no solo
@@ -205,14 +245,17 @@ const TransactionsProductFormList = ({
 					return
 				}
 
-				if (
+				const takesFromOrigin =
 					content === DrawerContent.exit ||
 					content === DrawerContent.transfer
-				) {
-					if (product.quantity === 0) {
-						originOutOfStock.push(label(product))
-						return
-					}
+				const available = Number(product.quantity)
+				const requested = Number(product.requiredQty)
+
+				// `<= 0` y no `=== 0`: con existencias negativas, el ajuste a lo
+				// disponible de más abajo agregaría una cantidad negativa
+				if (takesFromOrigin && available <= 0) {
+					originOutOfStock.push(label(product))
+					return
 				}
 
 				if (
@@ -221,6 +264,18 @@ const TransactionsProductFormList = ({
 				) {
 					destinationNotActive.push(label(product))
 					return
+				}
+
+				// Hay stock pero no alcanza: se agrega lo que hay en vez de lo que pide
+				// el archivo, para que el movimiento quede listo para enviar lo
+				// disponible. Antes entraba con la cantidad pedida, el resumen lo
+				// contaba como agregado sin más y el problema solo aparecía al guardar,
+				// como un error en la fila. Va después de la comprobación del destino
+				// para no anunciar como agregado algo que luego se rechaza
+				let quantity = requested
+				if (takesFromOrigin && requested > available) {
+					quantity = available
+					partialStock.push(label(product, { requested, available }))
 				}
 
 				setAddedProducts(prev => ({
@@ -234,7 +289,7 @@ const TransactionsProductFormList = ({
 					productVariantId: product?.id,
 					stockItemId: product?.stockItemId,
 					name: product.name,
-					quantity: product.requiredQty
+					quantity
 				})
 
 				added.push(label(product))
@@ -243,14 +298,24 @@ const TransactionsProductFormList = ({
 			// Todos los grupos juntos. Antes cada bloque hacía `return`, así que un
 			// archivo con dos problemas distintos solo mostraba el primero y había
 			// que subirlo otra vez para descubrir el segundo
+			// Los de stock insuficiente van primero: son los únicos que sí entraron,
+			// y su cantidad no es la del archivo, así que es lo que más conviene ver
 			const groups = [
+				{
+					reason: 'con stock insuficiente (se agregó lo disponible)',
+					items: partialStock
+				},
 				{ reason: 'desactivados en esta bodega', items: inactiveInOrigin },
 				{ reason: 'sin stock en origen', items: originOutOfStock },
 				{
 					reason: 'no activos en la bodega de destino',
 					items: destinationNotActive
 				},
-				{ reason: 'ya estaban en la lista', items: alreadyInList }
+				{ reason: 'ya estaban en la lista', items: alreadyInList },
+				{
+					reason: 'repetidos en el archivo (se usó la primera fila)',
+					items: repeatedInFile
+				}
 			].filter(group => group.items.length > 0)
 
 			if (groups.length === 0) {
@@ -262,9 +327,14 @@ const TransactionsProductFormList = ({
 			// La notificación solo da el resultado, que es corto, y se cierra sola:
 			// el listado vive en el bloque del formulario, que no se desvanece, así
 			// que no hay nada que perder si el aviso pasa desapercibido
+			// Si todo entró y solo hay ajustes de cantidad, "los que quedaron fuera"
+			// sería falso
 			notification.warning({
 				message: `Se agregaron ${added.length} de ${productList.length} items`,
-				description: 'Abajo está el detalle de los que quedaron fuera.'
+				description:
+					added.length === productList.length
+						? 'Abajo está el detalle de los que entraron con menos cantidad.'
+						: 'Abajo está el detalle de los que quedaron fuera o entraron con menos cantidad.'
 			})
 
 			setBulkRejected({
@@ -337,8 +407,40 @@ const TransactionsProductFormList = ({
 																	{group.items.length} {group.reason}
 																</p>
 																<ul className='list-disc pl-5'>
-																	{group.items.map(item => (
-																		<li key={item}>{item}</li>
+																	{/* Con índice: un código que aparece tres veces en
+																		el archivo deja dos entradas iguales en "repetidos" */}
+																	{group.items.map((item, index) => (
+																		<li key={`${index}-${item.code}`} className="mt-1">
+																			<CopyableText text={item.code} badge /> ·{' '}
+																			{item.name}
+																			{/* En su propia línea y con la etiqueta en gris,
+																				para que no se lea como parte del nombre. Ámbar
+																				oscuro y no amarillo: el aviso ya tiene fondo
+																				amarillo y encima no se leería */}
+																			{item.shortage ? (
+																				<div className='flex gap-4 mt-0.5 text-gray-500'>
+																					<span>
+																						Pide{' '}
+																						<b className='text-blue-600'>
+																							{item.shortage.requested}
+																						</b>
+																					</span>
+																					<span>
+																						Hay{' '}
+																						<b className='text-amber-700'>
+																							{item.shortage.available}
+																						</b>
+																					</span>
+																					<span>
+																						Faltan{' '}
+																						<b className='text-red-600'>
+																							{item.shortage.requested -
+																								item.shortage.available}
+																						</b>
+																					</span>
+																				</div>
+																			) : null}
+																		</li>
 																	))}
 																</ul>
 															</div>
