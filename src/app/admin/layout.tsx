@@ -51,21 +51,31 @@ const AdminLayout = ({
 						setHide(broken);
 					}}
 				>
-					<h1 className='text-center p-4 text-2xl text-white font-bold'>
-						{collapsed ? (
-							'M'
-						) : (
-							<Image
-								src='/logo-manuarte.png'
-								className='w-[150px] object-contain mb-6'
-								alt='login-image'
-								width={466}
-								height={230}
-								priority
-							/>
-						)}
-					</h1>
-					<SidebarMenu session={session} />
+					{/*
+						El layout mide exactamente la ventana y no desborda, así que el
+						Sider tampoco puede crecer: en pantallas bajas el final del menú, con
+						"Cerrar sesión", quedaba cortado y sin forma de llegar a él. El logo
+						queda fijo arriba y solo el menú desplaza
+					*/}
+					<div className='flex flex-col h-full'>
+						<h1 className='shrink-0 text-center p-4 text-2xl text-white font-bold'>
+							{collapsed ? (
+								'M'
+							) : (
+								<Image
+									src='/logo-manuarte.png'
+									className='w-[150px] object-contain mb-6'
+									alt='login-image'
+									width={466}
+									height={230}
+									priority
+								/>
+							)}
+						</h1>
+						<div className='flex-1 min-h-0 overflow-y-auto overflow-x-hidden sidebar-scrollbar'>
+							<SidebarMenu session={session} />
+						</div>
+					</div>
 				</Sider>
 				<Layout>
 					<Header

@@ -55,6 +55,29 @@ body {
 	background-color: #a3a3a3;
 }
 
+/*
+	Variante para el sidebar oscuro: la de arriba tiene borde claro y sobre el
+	fondo del menú se vería como una franja. Fina y discreta, porque solo aparece
+	en pantallas bajas
+*/
+.sidebar-scrollbar {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+	width: 6px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+	background-color: rgba(255, 255, 255, 0.25);
+	border-radius: 3px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+	background-color: rgba(255, 255, 255, 0.45);
+}
+
 .textRight .ant-input-number-input {
 	text-align: right !important;
 }
