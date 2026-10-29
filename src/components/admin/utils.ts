@@ -65,7 +65,10 @@ export const getProductsData = async ({
 					? `${item.productName} - ${item.name}`
 					: `${item.productName} - ${item.name} ${quantity}`,
 				disabled: inactiveInOrigin,
-				inactiveInOrigin
+				inactiveInOrigin,
+				// Para agrupar las opciones en el buscador. `<= 0` por si hay
+				// existencias negativas
+				outOfStock: 'quantity' in item && Number(item.quantity) <= 0
 			};
 		});
 

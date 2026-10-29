@@ -111,7 +111,7 @@ const SearchAndAddProducts = ({
 	// {value, label} descartaba `disabled`, que es lo que impide elegir un item
 	// desactivado. El motivo va en un Tag y no entre paréntesis porque la fila
 	// entera está atenuada y el texto suelto se perdía dentro de ella.
-	const options = (productsOptions ?? []).map(option =>
+	const flatOptions = (productsOptions ?? []).map(option =>
 		option.inactiveInOrigin
 			? {
 					...option,
@@ -126,6 +126,48 @@ const SearchAndAddProducts = ({
 				}
 			: option
 	);
+
+	// El backend ya los devuelve en este orden (disponibles, sin stock y
+	// desactivados, y dentro de cada uno por parecido y nombre). Los encabezados
+	// solo hacen visible ese orden, que sin ellos había que deducir. Se reparten
+	// conservando el orden de llegada, sin reordenar nada aquí
+	const groups = [
+		{
+			key: 'available',
+			title: 'Disponibles',
+			options: [] as typeof flatOptions
+		},
+		{
+			key: 'out-of-stock',
+			title: 'Sin stock',
+			options: [] as typeof flatOptions
+		},
+		{
+			key: 'inactive',
+			title: 'Desactivados en esta bodega',
+			options: [] as typeof flatOptions
+		}
+	];
+	// Se decide con la opción original: la decorada pierde el tipo de sus campos
+	(productsOptions ?? []).forEach((source, index) => {
+		const group = source.inactiveInOrigin
+			? groups[2]
+			: source.outOfStock
+				? groups[1]
+				: groups[0];
+		group.options.push(flatOptions[index]);
+	});
+	const nonEmptyGroups = groups.filter(group => group.options.length > 0);
+
+	// Con un solo grupo el encabezado no aporta nada y solo ocupa una fila
+	const options: SelectProps['options'] =
+		nonEmptyGroups.length > 1
+			? nonEmptyGroups.map(group => ({
+					key: group.key,
+					label: `${group.title} (${group.options.length})`,
+					options: group.options
+				}))
+			: flatOptions;
 
 	return (
 		<Form.Item name='product' label='Buscar producto' style={{ maxWidth: 500 }}>
