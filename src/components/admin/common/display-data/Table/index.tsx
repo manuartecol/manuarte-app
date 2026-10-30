@@ -32,6 +32,14 @@ const MIN_BODY_HEIGHT = 180;
 const SSR_WRAPPER_HEIGHT = `max(${MIN_BODY_HEIGHT}px, calc(100vh - 240px))`;
 
 /**
+ * Alto del cuerpo mientras no hay medición. Antes cada página pasaba el suyo
+ * (`scrollMinus`, 12 valores puestos a ojo entre 290 y 400); desde que el alto
+ * se mide del espacio real solo cubre el primer pintado, así que basta uno. Es
+ * el valor por defecto que ya tenía la prop.
+ */
+const FALLBACK_SCROLL_Y = 'calc(100vh - 380px)';
+
+/**
  * La medición se aplica antes del pintado, para que al entrar desde otra página
  * no se vea ni un fotograma con el alto de respaldo. En el servidor no existe
  * `useLayoutEffect`, de ahí la variante.
@@ -43,12 +51,6 @@ interface CustomTableProps {
 	columns: TableColumnsType<any>;
 	dataSource: DataTable[];
 	isLoading?: boolean;
-	/**
-	 * Respaldo en píxeles sobre `100vh`, que es como se dimensionaba antes.
-	 * Solo se usa si no se puede medir el contenedor. Las páginas no deberían
-	 * necesitar pasarlo: el alto se calcula del espacio real disponible.
-	 */
-	scrollMinus?: number;
 	pagination?: TablePaginationConfig;
 	filterData?: (
 		_pagination: TablePaginationConfig,
@@ -64,7 +66,6 @@ const CustomTable = ({
 	columns,
 	dataSource,
 	isLoading = false,
-	scrollMinus = 380,
 	pagination,
 	onChange = () => null
 }: CustomTableProps) => {
@@ -191,7 +192,7 @@ const CustomTable = ({
 		return () => observer.disconnect();
 	}, [measure, dataSource, isLoading]);
 
-	const scrollY = bodyHeight ?? `calc(100vh - ${scrollMinus}px)`;
+	const scrollY = bodyHeight ?? FALLBACK_SCROLL_Y;
 
 	/**
 	 * Alto del envoltorio, y única fuente de altura de todo el componente.

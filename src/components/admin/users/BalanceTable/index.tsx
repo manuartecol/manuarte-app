@@ -93,7 +93,6 @@ const BalanceTable = ({
 				columns={balanceMovementColumns}
 				dataSource={customerBalanceMovements}
 				isLoading={isLoading}
-				scrollMinus={370}
 				pagination={{
 					current: customerBalanceMovementsPagination.page,
 					pageSize: customerBalanceMovementsPagination.pageSize,
