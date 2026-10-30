@@ -3,6 +3,7 @@ import { Button, Divider, Form, Input } from 'antd';
 import CustomerInfoInputs from '../../common/input-data/CustomerInfoInputs';
 import ProductFormList from '../../common/input-data/ProductFormList';
 import DrawerFormFooter from '../../common/input-data/DrawerFormFooter';
+import DrawerLayout from '../../common/layout/DrawerLayout';
 import CalculationInputs from '../../common/input-data/CalculationInputs';
 import { useEffect, useState } from 'react';
 import { updateCalculations } from '../../utils';
@@ -126,44 +127,56 @@ const BillingForm = () => {
 				discountType: DiscountType.FIXED
 			}}
 			style={{ padding: '0 16px' }}
+			className='h-full'
 			onFinish={onFinish}
 			scrollToFirstError={{ behavior: 'smooth', block: 'end', focus: true }}
 		>
-			{!noCustomer ? <CustomerInfoInputs /> : null}
-
-			<Divider orientation='left'>Productos</Divider>
-			<ProductFormList
-				form={form}
-				itemsError={itemsError}
-				setItemsError={setItemsError}
-				isQuote={false}
-				isPreOrder={isPreOrder}
-				priceType={priceType}
-				setPriceType={setPriceType}
-			/>
-
-			<DrawerFormFooter
-				form={form}
-				isQuote={false}
-				shopSlug={params?.shopSlug as string}
+			{/*
+				Solo el botón va fijo. Los campos del pie (estado, métodos de pago,
+				importes, comentarios) siguen en el contenido: fijarlos se comería
+				demasiado alto y en pantallas bajas dejaría el formulario sin espacio
+			*/}
+			<DrawerLayout
+				footer={
+					<div className='flex justify-end'>
+						<Button
+							type='primary'
+							className='w-[90%] max-w-[250px]'
+							style={{ fontWeight: 600 }}
+							onClick={() => form.submit()}
+						>
+							GENERAR
+						</Button>
+					</div>
+				}
 			>
-				<CalculationInputs form={form} />
-			</DrawerFormFooter>
+				{!noCustomer ? <CustomerInfoInputs /> : null}
 
-			<div className='flex flex-col items-end'>
-				<Form.Item name='comments' label='Comentarios' className='w-[50%]'>
-					<TextArea rows={2} />
-				</Form.Item>
+				<Divider orientation='left'>Productos</Divider>
+				<ProductFormList
+					form={form}
+					itemsError={itemsError}
+					setItemsError={setItemsError}
+					isQuote={false}
+					isPreOrder={isPreOrder}
+					priceType={priceType}
+					setPriceType={setPriceType}
+				/>
 
-				<Button
-					type='primary'
-					className='w-[90%] max-w-[250px]'
-					style={{ fontWeight: 600 }}
-					onClick={() => form.submit()}
+				<DrawerFormFooter
+					form={form}
+					isQuote={false}
+					shopSlug={params?.shopSlug as string}
 				>
-					GENERAR
-				</Button>
-			</div>
+					<CalculationInputs form={form} />
+				</DrawerFormFooter>
+
+				<div className='flex flex-col items-end'>
+					<Form.Item name='comments' label='Comentarios' className='w-[50%]'>
+						<TextArea rows={2} />
+					</Form.Item>
+				</div>
+			</DrawerLayout>
 		</Form>
 	);
 };

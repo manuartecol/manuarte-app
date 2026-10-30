@@ -5,6 +5,7 @@ import { CloseOutlined } from '@ant-design/icons';
 import CustomerInfoInputs from '../../common/input-data/CustomerInfoInputs';
 import ProductFormList from '../../common/input-data/ProductFormList';
 import DrawerFormFooter from '../../common/input-data/DrawerFormFooter';
+import DrawerLayout from '../../common/layout/DrawerLayout';
 import CalculationInputs from '../../common/input-data/CalculationInputs';
 import useForm from '@/hooks/useForm';
 import { DiscountType, QuoteStatus } from '@/types/enums';
@@ -159,60 +160,65 @@ const QuoteForm = () => {
 				discountType: DiscountType.FIXED
 			}}
 			style={{ padding: '0 16px' }}
+			className='h-full'
 			onFinish={values => onSubmit(values)}
 			scrollToFirstError={{ behavior: 'smooth', block: 'end', focus: true }}
 		>
-			{!noCustomer ? (
-				<>
-					<Divider orientation='left' style={{ marginTop: 0 }}>
-						Datos del Cliente
-					</Divider>
+			<DrawerLayout
+				footer={
+					<div className='flex justify-end'>
+						<Button
+							type='primary'
+							className='w-[90%] max-w-[250px]'
+							style={{ fontWeight: 600 }}
+							htmlType='submit'
+							loading={isLoading}
+						>
+							{!dataToHandle ? 'CREAR' : 'EDITAR'}
+						</Button>
+					</div>
+				}
+			>
+				{!noCustomer ? (
+					<>
+						<Divider orientation='left' style={{ marginTop: 0 }}>
+							Datos del Cliente
+						</Divider>
 
-					{showCleanCustomerBtn && (
-						<div className='flex gap-1 items-center justify-end mb-3'>
-							<label htmlFor='cleanCustBtn'>Limpiar cliente</label>
-							<Button
-								id='cleanCustBtn'
-								type='text'
-								danger
-								icon={<CloseOutlined style={{ fontSize: 20 }} />}
-								onClick={cleanCustomer}
-							/>
-						</div>
-					)}
+						{showCleanCustomerBtn && (
+							<div className='flex gap-1 items-center justify-end mb-3'>
+								<label htmlFor='cleanCustBtn'>Limpiar cliente</label>
+								<Button
+									id='cleanCustBtn'
+									type='text'
+									danger
+									icon={<CloseOutlined style={{ fontSize: 20 }} />}
+									onClick={cleanCustomer}
+								/>
+							</div>
+						)}
 
-					<CustomerInfoInputs />
-				</>
-			) : null}
+						<CustomerInfoInputs />
+					</>
+				) : null}
 
-			<Divider orientation='left'>Productos</Divider>
-			<ProductFormList
-				form={form}
-				itemsError={itemsError}
-				setItemsError={setItemsError}
-				isQuote={true}
-				priceType={priceType}
-				setPriceType={setPriceType}
-			/>
-
-			<DrawerFormFooter isQuote={true}>
-				<CalculationInputs
+				<Divider orientation='left'>Productos</Divider>
+				<ProductFormList
 					form={form}
-					discountType={dataToHandle?.discountType}
+					itemsError={itemsError}
+					setItemsError={setItemsError}
+					isQuote={true}
+					priceType={priceType}
+					setPriceType={setPriceType}
 				/>
-			</DrawerFormFooter>
 
-			<div className='flex justify-end mt-4'>
-				<Button
-					type='primary'
-					className='w-[90%] max-w-[250px]'
-					style={{ fontWeight: 600 }}
-					htmlType='submit'
-					loading={isLoading}
-				>
-					{!dataToHandle ? 'CREAR' : 'EDITAR'}
-				</Button>
-			</div>
+				<DrawerFormFooter isQuote={true}>
+					<CalculationInputs
+						form={form}
+						discountType={dataToHandle?.discountType}
+					/>
+				</DrawerFormFooter>
+			</DrawerLayout>
 		</Form>
 	);
 };

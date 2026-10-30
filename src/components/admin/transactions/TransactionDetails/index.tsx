@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Col, Divider, Row, Skeleton } from 'antd';
 import TransactionsItemList from '../TransactionItemsList';
+import DrawerLayout from '../../common/layout/DrawerLayout';
 import { transactionLibs } from '@/libs/api/transaction';
 import { billingLibs } from '@/libs/api/billing';
 import { useDrawerStore } from '@/stores/drawerStore';
@@ -101,28 +102,23 @@ const TransactionDetails = () => {
 	}, 0);
 
 	return (
-		/*
-			Un solo scroller, el área de contenido, y el pie fuera de él para que
-			quede siempre a la misma altura. Con `justify-between` sobre un `h-full`,
-			el espacio debajo del botón cambiaba según el contenido: con la lista
-			corta se veía el padding del Drawer, y con la lista larga el pie se iba
-			fuera de la caja junto al contenido y ese padding dejaba de verse.
-
-			Las tres clases de overflow no son decorativas:
-
-			- `overflow-hidden` en el contenedor exterior: el cuerpo del Drawer
-			  también es un contenedor con `overflow: auto`, así que sin esto habría
-			  dos scrollbars verticales compitiendo.
-			- `overflow-x-hidden` en el interior: `Row gutter={32}` aplica márgenes
-			  de -16 px a cada lado, que antes caían dentro del padding del Drawer y
-			  aquí desbordaban. Solo se recorta margen vacío, porque el contenido
-			  arranca en 0 por el padding de cada `Col`.
-			- `min-h-0`: sin él el hijo flex no encoge por debajo de su contenido y
-			  no scrollea nunca.
-		*/
-		<div className='h-full flex flex-col overflow-hidden'>
-			<div className='flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar'>
-				<Row gutter={32} className='items-center'>
+		<DrawerLayout
+			footer={
+				<div className='flex justify-end gap-4'>
+					<Button
+						color='danger'
+						variant='outlined'
+						className='w-[90%] max-w-[200px]'
+						style={{ fontWeight: 600 }}
+						htmlType='button'
+						onClick={closeDrawer}
+					>
+						CERRAR
+					</Button>
+				</div>
+			}
+		>
+			<Row gutter={32} className='items-center'>
 				{isBilling ? null : (
 					<>
 						<Col span={12}>
@@ -208,28 +204,8 @@ const TransactionDetails = () => {
 					hasFailed={hasFailed}
 					onRetry={() => setRetryCount(count => count + 1)}
 				/>
-				</Row>
-			</div>
-
-			{/*
-				`shrink-0` para que el pie no se comprima cuando el contenido es largo,
-				y sin padding inferior propio: el espacio de debajo lo pone el padding
-				del cuerpo del Drawer, que ahora sí se respeta siempre porque el pie ya
-				no se va con el scroll. Mismo criterio que `DrawerFormFooter`.
-			*/}
-			<div className='shrink-0 flex justify-end gap-4 pt-4 bg-white'>
-				<Button
-					color='danger'
-					variant='outlined'
-					className='w-[90%] max-w-[200px]'
-					style={{ fontWeight: 600 }}
-					htmlType='button'
-					onClick={closeDrawer}
-				>
-					CERRAR
-				</Button>
-			</div>
-		</div>
+			</Row>
+		</DrawerLayout>
 	);
 };
 

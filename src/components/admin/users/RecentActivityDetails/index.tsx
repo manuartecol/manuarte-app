@@ -1,6 +1,7 @@
 import { useDrawerStore } from '@/stores/drawerStore';
 import { formatCurrency } from '@/utils/formats';
 import { Button, Col, Row } from 'antd';
+import DrawerLayout from '../../common/layout/DrawerLayout';
 
 const RecentActivityDetails = () => {
 	const { dataToHandle, closeDrawer } = useDrawerStore.getState();
@@ -15,7 +16,22 @@ const RecentActivityDetails = () => {
 	}, 0);
 
 	return (
-		<div className='h-full flex flex-col justify-between'>
+		<DrawerLayout
+			footer={
+				<div className='flex justify-end'>
+					<Button
+						color='danger'
+						variant='outlined'
+						className='w-[90%] max-w-[200px]'
+						style={{ fontWeight: 600 }}
+						htmlType='button'
+						onClick={closeDrawer}
+					>
+						CERRAR
+					</Button>
+				</div>
+			}
+		>
 			<Row gutter={32} className='items-center'>
 				<Col span={12}>
 					<div className='flex flex-col flex-1 gap-2 mb-6'>
@@ -112,20 +128,7 @@ const RecentActivityDetails = () => {
 					</>
 				) : null}
 			</Row>
-
-			<div className='flex justify-end py-4'>
-				<Button
-					color='danger'
-					variant='outlined'
-					className='w-[90%] max-w-[200px]'
-					style={{ fontWeight: 600 }}
-					htmlType='button'
-					onClick={closeDrawer}
-				>
-					CERRAR
-				</Button>
-			</div>
-		</div>
+		</DrawerLayout>
 	);
 };
 
