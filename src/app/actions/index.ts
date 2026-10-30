@@ -1,18 +1,30 @@
 'use server';
+import { CredentialsSignin } from 'next-auth';
 import { signIn, signOut } from '@/auth';
 import { ROUTES } from '@/utils/routes';
+import { LoginErrorCode } from '@/types/enums';
 
-export async function doCredentialLogin(values: SubmitLoginDto) {
+type LoginResult = { ok: true } | { ok: false; code: string };
+
+export async function doCredentialLogin(
+	values: SubmitLoginDto
+): Promise<LoginResult> {
 	try {
-		const res = await signIn('credentials', {
+		await signIn('credentials', {
 			email: values.email,
 			password: values.password,
 			redirect: false
 		});
 
-		return res;
+		return { ok: true };
 	} catch (err) {
-		console.error(err);
+		// El motivo ya quedó en el log de `authorize`
+		if (err instanceof CredentialsSignin) return { ok: false, code: err.code };
+
+		console.error(
+			`[auth] sign in failed: ${err instanceof Error ? err.message : 'unknown error'}`
+		);
+		return { ok: false, code: LoginErrorCode.SERVER_ERROR };
 	}
 }
 

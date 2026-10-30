@@ -5,8 +5,6 @@ import { Session } from 'next-auth';
 import getMenuItems, { allMenuItems } from './getMenuItems';
 import { ModalContent } from '@/types/enums';
 import { useModalStore } from '@/stores/modalStore';
-import { getSession } from 'next-auth/react';
-import { authServices } from '@/services/authServices';
 import { doLogout } from '@/app/actions';
 import { useDispatch } from 'react-redux';
 
@@ -31,13 +29,11 @@ const SidebarMenu = ({ session }: { session: Session | null }) => {
 
 	const handleLogout = async () => {
 		try {
-			const session = await getSession();
-			const res = await authServices.logout(session?.refreshToken as string);
-			if (res.status === 204) {
-				closeModal();
-				await doLogout();
-				dispatch({ type: 'RESET_APP' });
-			}
+			// La invalidación del refresh token en el backend la hace `doLogout`
+			// del lado del servidor (`events.signOut` en auth.ts)
+			closeModal();
+			await doLogout();
+			dispatch({ type: 'RESET_APP' });
 		} catch (error) {
 			console.error(error);
 		}

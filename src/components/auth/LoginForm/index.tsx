@@ -8,6 +8,18 @@ import { doCredentialLogin } from '@/app/actions';
 import { getSession } from 'next-auth/react';
 import { AUTH_RULES } from '@/utils/auth';
 import { ROUTES } from '@/utils/routes';
+import { LoginErrorCode } from '@/types/enums';
+
+// Un `null` de `authorize` llega como el `code` por defecto, 'credentials', y
+// cae en el mensaje de credenciales inválidas
+const LOGIN_ERROR_MESSAGES: Record<string, string> = {
+	[LoginErrorCode.INVALID_CREDENTIALS]:
+		'Correo o contraseña incorrectos. Inténtalo de nuevo!',
+	[LoginErrorCode.SERVER_UNAVAILABLE]:
+		'No se pudo conectar con el servidor. Inténtalo en unos minutos!',
+	[LoginErrorCode.SERVER_ERROR]:
+		'Ocurrió un error al iniciar sesión. Inténtalo más tarde!'
+};
 
 const LoginForm = () => {
 	const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +34,7 @@ const LoginForm = () => {
 				password: values.password
 			});
 
-			if (res) {
+			if (res.ok) {
 				const session = await getSession();
 
 				const roleName = session?.user?.roleName as string;
@@ -38,7 +50,9 @@ const LoginForm = () => {
 			}
 
 			notification.error({
-				message: 'Credenciales inválidas. Inténtalo de nuevo!'
+				message:
+					LOGIN_ERROR_MESSAGES[res.code] ??
+					LOGIN_ERROR_MESSAGES[LoginErrorCode.INVALID_CREDENTIALS]
 			});
 		} catch (error) {
 			console.error(error);

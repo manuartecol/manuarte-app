@@ -109,3 +109,14 @@ export enum CustomerBalanceMovementCategory {
 	ADJUSTMENT = 'ADJUSTMENT',
 	OTHER = 'OTHER'
 }
+
+/**
+ * Motivo de un login fallido. Viaja de `authorize` al formulario como `code`
+ * de `CredentialsSignin`. Nunca distingue correo inexistente de contraseña
+ * incorrecta: eso permitiría averiguar qué correos tienen cuenta.
+ */
+export enum LoginErrorCode {
+	INVALID_CREDENTIALS = 'invalid_credentials',
+	SERVER_UNAVAILABLE = 'server_unavailable',
+	SERVER_ERROR = 'server_error'
+}

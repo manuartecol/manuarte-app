@@ -15,10 +15,8 @@ declare module 'next-auth' {
 			mainStock: boolean;
 			extraPermissions: string[];
 			accessToken?: string;
-			refreshToken?: string;
 		};
 		accessToken: string;
-		refreshToken: string;
 	}
 
 	interface User {
