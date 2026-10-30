@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Spin } from 'antd';
+import { Alert, Button, Skeleton, Spin } from 'antd';
 import PDFActions from '../PDFActions';
 import PDFPreview from '../PDFPreview';
 import { quoteLibs } from '@/libs/api/quote';
@@ -47,13 +47,29 @@ const PDFContainer = ({ shopSlug, serialNumber, isQuote }: Props) => {
 		<>
 			{/*
 				Solo con datos: antes se mostraban durante la carga, y "Descargar"
-				generaba en el navegador un PDF de un documento que aún no había llegado
+				generaba en el navegador un PDF de un documento que aún no había llegado.
+				Mientras carga, un esqueleto con la misma forma reserva el alto de la
+				fila: sin él la tarjeta del documento empezaba arriba y bajaba de golpe
+				al aparecer los botones
 			*/}
 			{data ? (
 				<PDFActions
 					isQuote={isQuote}
 					data={isQuote ? (data as Quote) : (data as Billing)}
 				/>
+			) : isLoading ? (
+				<div className='flex items-center justify-between ps-4'>
+					<div className='flex gap-2'>
+						<Skeleton.Button active style={{ width: 120 }} />
+						<Skeleton.Button active style={{ width: 95 }} />
+					</div>
+					{isQuote ? (
+						<div className='flex gap-4'>
+							<Skeleton.Button active style={{ width: 95 }} />
+							<Skeleton.Button active style={{ width: 105 }} />
+						</div>
+					) : null}
+				</div>
 			) : null}
 
 			{/*
