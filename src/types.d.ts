@@ -60,8 +60,9 @@ interface ProductVariantStockItem {
 interface SubmitProductDto {
 	type?: 'create' | 'update' | 'updateVariant';
 	name: string;
-	description: string;
+	description?: string;
 	productCategoryId?: string;
+	productCategoryName?: string;
 	productVariants?: ProductVariantStockItem[];
 	productVariantName?: string;
 	productVariant?: {
@@ -73,16 +74,29 @@ interface SubmitProductDto {
 	stocks?: { id: string; currency: string }[];
 }
 
+interface SubmitProductCategoryDto {
+	name: string;
+	// null quita el grupo
+	productCategoryGroupId: string | null;
+}
+
 interface SubmitProductVariantDto extends ProductVariantStockItem {
 	productId: string;
 	stockIds?: string[];
 	stocks?: { id: string; currency: string }[];
 }
 
+interface ProductCategoryGroup {
+	id: string;
+	name: string;
+}
+
 interface ProductCategory {
 	id: string;
 	name: string;
 	cId: string;
+	productCategoryGroupId?: string | null;
+	groupName?: string | null;
 	createdBy: string;
 	updatedBy: string;
 	createdDate: string;

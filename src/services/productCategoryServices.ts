@@ -14,12 +14,26 @@ export const productCategoryServices = {
 		}
 	},
 
-	createProductCategory: async (body: ProductCategory) => {
+	getProductCategoryGroups: async (): Promise<
+		ProductCategoryGroup[] | undefined
+	> => {
+		try {
+			const res = await axiosPrivate.get(
+				`${ENV.API.PRODUCT_CATEGORIES}/groups`
+			);
+
+			return res.data;
+		} catch (error) {
+			console.error(error);
+		}
+	},
+
+	createProductCategory: async (body: SubmitProductCategoryDto) => {
 		return await axiosPrivate.post(ENV.API.PRODUCT_CATEGORIES, body);
 	},
 
 	updateProductCategory: async (
-		body: ProductCategory,
+		body: SubmitProductCategoryDto,
 		productCategoryId: string
 	) => {
 		return await axiosPrivate.put(
