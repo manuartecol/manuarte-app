@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { productLibs, ProductVariantParams } from '@/libs/api/product';
 import { setProductCategories } from '@/reducers/productCategories/productCategorySlice';
@@ -9,6 +9,9 @@ import {
 
 const useProductServices = () => {
 	const [isLoading, setIsLoading] = useState(true);
+	// Solo la última consulta pinta la tabla: con clics rápidos en los filtros,
+	// una respuesta lenta llegaba después y mostraba datos de otro filtro
+	const lastRequestId = useRef(0);
 	const dispatch = useDispatch();
 
 	const getProducts = async () => {
@@ -17,15 +20,17 @@ const useProductServices = () => {
 	};
 
 	const getProductVariants = async (params?: ProductVariantParams) => {
+		const requestId = ++lastRequestId.current;
 		try {
 			setIsLoading(true);
 			const data = await productLibs.getAllProductVariants(params);
+			if (requestId !== lastRequestId.current) return;
 
 			dispatch(setProductVariants(data));
 		} catch (error) {
 			console.error(error);
 		} finally {
-			setIsLoading(false);
+			if (requestId === lastRequestId.current) setIsLoading(false);
 		}
 	};
 

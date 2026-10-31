@@ -1,10 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Switch, TablePaginationConfig, Tabs, TabsProps } from 'antd';
+import { Segmented, TablePaginationConfig, Tabs, TabsProps } from 'antd';
 import { useSelector } from 'react-redux';
 import { AiOutlineAppstore } from 'react-icons/ai';
 import { BiPackage } from 'react-icons/bi';
-import { MdOutlineCategory } from 'react-icons/md';
+import {
+	MdCheckCircle,
+	MdOutlineCategory,
+	MdOutlineList,
+	MdRemoveCircle
+} from 'react-icons/md';
 import CustomTable from '../../common/display-data/Table';
 import { ModalContent } from '@/types/enums';
 import AddButton from '../../common/ui/AddButton';
@@ -24,9 +29,18 @@ const TabsTableProducts = ({
 	productCategoriesData
 }: TabsTableProductsProps) => {
 	const [isProducts, setIsProducts] = useState(true);
-	const [showActiveOnly, setShowActiveOnly] = useState(
-		searchParams.showActiveOnly === 'true'
-	);
+	// Sin el parámetro, solo activas: igual que el backend
+	const activeFilterParam =
+		searchParams.showActiveOnly === 'false' ||
+		searchParams.showActiveOnly === 'all'
+			? searchParams.showActiveOnly
+			: 'true';
+	/**
+	 * Estado local para que el selector se mueva al instante. Si dependiera solo
+	 * de la URL, se quedaba en el valor anterior mientras el servidor respondía y
+	 * con varios clics seguidos pasaba por valores intermedios.
+	 */
+	const [activeFilter, setActiveFilter] = useState(activeFilterParam);
 	const { productVariants, productVariantsPagination } = useSelector(
 		(state: RootState) => state.product
 	);
@@ -37,7 +51,9 @@ const TabsTableProducts = ({
 		useProductServices();
 	const { updateFilterParams, synchronizeFilters, tableFilters } = useFilters();
 	const { productVariantColumns, productCategoryColumns } = ProductCols({
-		tableFilters
+		tableFilters,
+		// Con un solo estado en la tabla, la columna no aporta nada
+		showStatus: activeFilterParam === 'all'
 	});
 
 	const page = Number(searchParams.page) || 1;
@@ -60,6 +76,10 @@ const TabsTableProducts = ({
 	useEffect(() => {
 		synchronizeFilters(filters);
 	}, [searchParams]);
+
+	useEffect(() => {
+		setActiveFilter(activeFilterParam);
+	}, [activeFilterParam]);
 
 	const handleTableChange = (
 		pagination: TablePaginationConfig,
@@ -106,27 +126,51 @@ const TabsTableProducts = ({
 
 	const operations = isProducts ? (
 		<div className='flex gap-2 max-[460px]:flex-col'>
-			<div className='flex-1 flex items-center gap-2 me-4'>
-				<label htmlFor='showActiveOnly' className='cursor-pointer'>
-					Productos
-					{showActiveOnly ? ' activos' : ' inactivos'}
-				</label>
-				<Switch
-					defaultChecked={showActiveOnly}
-					onChange={checked => {
-						setShowActiveOnly(checked);
+			<div className='flex-1 flex items-center me-4'>
+				<Segmented
+					value={activeFilter}
+					options={[
+						{
+							label: (
+								<span className='flex items-center gap-1.5'>
+									<MdCheckCircle size={16} className='text-emerald-500' />
+									<span className='max-[460px]:hidden'>Activas</span>
+								</span>
+							),
+							title: 'Activas',
+							value: 'true'
+						},
+						{
+							label: (
+								<span className='flex items-center gap-1.5'>
+									<MdRemoveCircle size={16} className='text-amber-500' />
+									<span className='max-[460px]:hidden'>Inactivas</span>
+								</span>
+							),
+							title: 'Inactivas',
+							value: 'false'
+						},
+						{
+							label: (
+								<span className='flex items-center gap-1.5'>
+									<MdOutlineList size={16} className='text-gray-500' />
+									<span className='max-[460px]:hidden'>Todas</span>
+								</span>
+							),
+							title: 'Todas',
+							value: 'all'
+						}
+					]}
+					onChange={value => {
+						if (value === activeFilter) return;
+						setActiveFilter(value);
+						// Vuelve a la página 1: la actual puede no existir con otro filtro
 						updateFilterParams(
-							{ current: page, pageSize },
-							{ ...searchParams, showActiveOnly: checked ? 'true' : 'false' },
-							{
-								...tableFilters,
-								showActiveOnly: checked ? ['true'] : ['false']
-							}
+							{ current: 1, pageSize },
+							{ ...searchParams, showActiveOnly: value },
+							{ ...tableFilters, showActiveOnly: [value] }
 						);
 					}}
-					id='showActiveOnly'
-					style={showActiveOnly ? { backgroundColor: '#10b981' } : {}}
-					checked={showActiveOnly}
 				/>
 			</div>
 			<AddButton

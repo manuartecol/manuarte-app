@@ -1,15 +1,18 @@
 import useTable from '@/hooks/useTable';
 import { FilterValue } from 'antd/es/table/interface';
 import CopyableText from '../../common/ui/CopyableText';
-import { QRCode, Space, TableColumnsType } from 'antd';
+import { QRCode, Space, TableColumnsType, Tooltip } from 'antd';
+import { MdCheckCircle, MdRemoveCircle } from 'react-icons/md';
 import { formatDate, formatToTitleCase } from '@/utils/formats';
 import ProductActions from '../ProductActions';
 import ProductCategoryActions from '../ProductCategoryActions';
 
 const ProductCols = ({
-	tableFilters
+	tableFilters,
+	showStatus = false
 }: {
 	tableFilters?: Record<string, FilterValue | null>;
+	showStatus?: boolean;
 }) => {
 	const { getColumnSearchProps } = useTable();
 
@@ -20,7 +23,34 @@ const ProductCols = ({
 			key: 'vId',
 			filteredValue: tableFilters?.vId || null,
 			...getColumnSearchProps('vId'),
-			render: value => <CopyableText text={value} />,
+			// Con "Todas", el estado va junto al vId: su ancho es fijo y sobra espacio
+			render: (value, record) =>
+				showStatus ? (
+					<span className='flex items-center gap-1.5'>
+						{record.active ? (
+							<Tooltip title='Activa'>
+								<span className='flex'>
+									<MdCheckCircle
+										size={16}
+										className='shrink-0 text-emerald-500'
+									/>
+								</span>
+							</Tooltip>
+						) : (
+							<Tooltip title='Inactiva'>
+								<span className='flex'>
+									<MdRemoveCircle
+										size={16}
+										className='shrink-0 text-amber-500'
+									/>
+								</span>
+							</Tooltip>
+						)}
+						<CopyableText text={value} />
+					</span>
+				) : (
+					<CopyableText text={value} />
+				),
 			width: 105
 		},
 		{
