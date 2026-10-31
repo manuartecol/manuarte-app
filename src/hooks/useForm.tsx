@@ -7,7 +7,6 @@ import { productCategoryServices } from '@/services/productCategoryServices';
 import {
 	addProduct,
 	addProductVariant,
-	removeProduct,
 	updateProduct,
 	updateProductVariant
 } from '@/reducers/products/productSlice';
@@ -122,14 +121,18 @@ const useForm = () => {
 
 	const submitUpdateProduct = async (
 		values: SubmitProductDto,
-		productId: string
+		productId: string,
+		reloadTable?: () => Promise<void>
 	) => {
 		await handleSubmit({
 			serviceFn: valuesToUpdate =>
 				productLibs.updateProduct(valuesToUpdate, productId),
 			values,
 			onSuccess: async () => {
+				// El cambio se ve al instante; la recarga corrige lo que dependa de
+				// los filtros de la tabla
 				dispatch(updateProduct({ ...values, id: productId }));
+				await reloadTable?.();
 			}
 		});
 	};
@@ -151,29 +154,27 @@ const useForm = () => {
 	const submitUpdateProductVariant = async (
 		values: SubmitProductDto,
 		productVariantId: string,
-		activeProducts?: boolean
+		reloadTable?: () => Promise<void>
 	) => {
 		await handleSubmit({
 			serviceFn: valuesToUpdate =>
 				productLibs.updateProductVariant(valuesToUpdate, productVariantId),
 			values,
 			onSuccess: async () => {
-				if (activeProducts !== values?.productVariant?.active) {
-					dispatch(removeProduct({ productVariantId }));
-					return;
-				}
-
 				dispatch(
 					updateProductVariant({
 						...values.productVariant,
 						stockIds: values.stockIds
 					})
 				);
+				await reloadTable?.();
 			}
 		});
 	};
 
-	const submitCreateProductCategory = async (values: { name: string }) => {
+	const submitCreateProductCategory = async (
+		values: SubmitProductCategoryDto
+	) => {
 		await handleSubmit({
 			serviceFn: productCategoryServices.createProductCategory,
 			values,
@@ -183,7 +184,7 @@ const useForm = () => {
 	};
 
 	const submitUpdateProductCategory = async (
-		values: { name: string },
+		values: SubmitProductCategoryDto,
 		productCategoryId: string
 	) => {
 		await handleSubmit({

@@ -47,7 +47,13 @@ export const productSlice = createSlice({
 		},
 
 		updateProduct: (state, action) => {
-			const { productVariant, stockIds, ...product } = action.payload;
+			const {
+				productVariant,
+				stockIds,
+				productCategoryId,
+				productCategoryName,
+				...product
+			} = action.payload;
 
 			const newProductData =
 				state.products.length > 0
@@ -56,17 +62,24 @@ export const productSlice = createSlice({
 						)
 					: [];
 
-			const newProductVariantData = state.productVariants.map(pv =>
-				pv.productId === product.id
-					? {
-							...pv,
-							name: pv.id === productVariant.id ? productVariant.name : pv.name,
-							productName: product.name,
-							productDescription: product.description,
-							stockIds
-						}
-					: pv
-			);
+			// Lo del producto va a todas sus presentaciones; el nombre y los
+			// `stockIds` son solo de la editada. Antes los `stockIds` se copiaban a
+			// las hermanas, que en la tabla aparecían en bodegas donde no estaban
+			const newProductVariantData = state.productVariants.map(pv => {
+				if (pv.productId !== product.id) return pv;
+
+				const isEdited = pv.id === productVariant.id;
+
+				return {
+					...pv,
+					name: isEdited ? productVariant.name : pv.name,
+					active: isEdited ? productVariant.active : pv.active,
+					productName: product.name,
+					productDescription: product.description,
+					...(productCategoryId && { productCategoryId, productCategoryName }),
+					stockIds: isEdited ? stockIds : pv.stockIds
+				};
+			});
 
 			state.products = newProductData;
 			state.productVariants = newProductVariantData;
@@ -88,6 +101,7 @@ export const productSlice = createSlice({
 					? {
 							...pv,
 							name: productVariant.name,
+							active: productVariant.active,
 							stockIds: productVariant.stockIds
 						}
 					: pv

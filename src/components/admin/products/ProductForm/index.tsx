@@ -9,6 +9,7 @@ import { selectFilterOption } from '../../utils';
 import { useModalStore } from '@/stores/modalStore';
 import { useSearchParams } from 'next/navigation';
 import { useWatch } from 'antd/es/form/Form';
+import useProductServices from '@/services/product';
 
 const ProductForm = () => {
 	const {
@@ -28,8 +29,17 @@ const ProductForm = () => {
 	const [active, setActive] = useState(dataToHandle?.active ?? false);
 	const [isQuitoSelected, setIsQuitoSelected] = useState(true);
 	const searchParams = useSearchParams();
-	const activeProducts = searchParams.get('showActiveOnly') === 'true';
+	const { getProductVariants } = useProductServices();
 	const stockIdsValues = useWatch('stockIds', form);
+
+	/**
+	 * Tras editar se recarga la página actual de la tabla con sus filtros. Ajustar
+	 * la lista a mano obligaba a replicar cada filtro en el cliente: una fila que
+	 * dejaba de cumplir el de categoría, nombre o estado se quedaba, y el total
+	 * de la paginación no cambiaba
+	 */
+	const reloadTable = () =>
+		getProductVariants(Object.fromEntries(searchParams.entries()));
 
 	useEffect(() => {
 		if (dataToHandle) {
@@ -72,6 +82,13 @@ const ProductForm = () => {
 				values ?? {};
 			const valuesToUpdate = {
 				...rest,
+				// La categoría solo viaja al editar la información general
+				...(editGeneralProduct && {
+					productCategoryId,
+					productCategoryName: productCategories?.find(
+						pCat => pCat.id === productCategoryId
+					)?.name
+				}),
 				productVariant: {
 					id: dataToHandle.id,
 					name: productVariantName,
@@ -80,12 +97,16 @@ const ProductForm = () => {
 				stockIds: stockIds || []
 			};
 			if (editGeneralProduct) {
-				submitUpdateProduct(valuesToUpdate, dataToHandle.productId);
+				submitUpdateProduct(
+					valuesToUpdate,
+					dataToHandle.productId,
+					reloadTable
+				);
 			} else {
 				submitUpdateProductVariant(
 					{ ...valuesToUpdate, stockIds: stockIds || [] },
 					dataToHandle.id,
-					activeProducts
+					reloadTable
 				);
 			}
 		}
@@ -137,16 +158,7 @@ const ProductForm = () => {
 					disabled={inputDisabled}
 				/>
 			</Form.Item>
-			<Form.Item
-				name='description'
-				label='Descripción'
-				rules={[
-					{
-						required: !inputDisabled,
-						message: 'La descripción del producto es requerida'
-					}
-				]}
-			>
+			<Form.Item name='description' label='Descripción'>
 				<Input.TextArea
 					placeholder='Ingresa una descripción para el producto'
 					disabled={inputDisabled}
@@ -157,18 +169,18 @@ const ProductForm = () => {
 				label='Categoría'
 				rules={[
 					{
-						required: !isUpdating,
+						required: !inputDisabled,
 						message: 'La categoría del producto es requerida'
 					}
 				]}
 			>
 				<Select
 					placeholder='Selecciona una categoría'
-					allowClear
+					allowClear={!isUpdating}
 					showSearch
 					filterOption={selectFilterOption}
 					options={pCategoryOptions}
-					disabled={isUpdating}
+					disabled={inputDisabled}
 				/>
 			</Form.Item>
 
