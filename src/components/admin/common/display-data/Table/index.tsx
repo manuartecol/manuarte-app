@@ -209,7 +209,11 @@ const CustomTable = ({
 		locale: { items_per_page: '/ página' },
 		size: isMobile ? 'small' : 'default',
 		defaultPageSize: 30,
-		pageSizeOptions: ['30', '50', '100']
+		pageSizeOptions: ['30', '50', '100'],
+		// Sin esto antd usa el total para calcular las páginas pero no lo muestra.
+		// En móvil va solo la cifra: el rango no cabe junto al selector de tamaño
+		showTotal: (total, range) =>
+			isMobile ? `${total}` : `${range[0]}-${range[1]} de ${total}`
 	};
 
 	return (
