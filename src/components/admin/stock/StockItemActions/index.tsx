@@ -49,7 +49,7 @@ const StockItemActions = ({
 
 	return (
 		<TableActions
-			record={record}
+			hasStock={Number(record.quantity ?? 0) > 0}
 			onEdit={isAdmin ? handleEdit : undefined}
 			onTracking={() =>
 				route.push(

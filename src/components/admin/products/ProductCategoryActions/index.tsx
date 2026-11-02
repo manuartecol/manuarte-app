@@ -40,11 +40,30 @@ const ProductCategoryActions = ({ record }: { record: ProductCategory }) => {
 		}
 	};
 
+	/**
+	 * El conteo viene en la fila, así que el aviso dice qué va a pasar y la
+	 * confirmación se apaga en vez de dejar al usuario confirmar y recibir un
+	 * error. Si la respuesta no trae el conteo no se afirma nada: decide el
+	 * backend, que rechaza con su mensaje
+	 */
+	const productsCount = record.productsCount;
+
+	const deleteDescription =
+		productsCount === undefined
+			? '¿Estás seguro de que quieres eliminar esta categoría?'
+			: productsCount > 0
+				? `No se puede eliminar, porque tiene ${productsCount} ${
+						productsCount === 1 ? 'producto' : 'productos'
+					}. Muévelos a otra categoría o elimínalos primero.`
+				: 'No tiene productos, así que se elimina.';
+
 	return (
 		<TableActions
 			onEdit={handleEdit}
 			onDelete={handleDelete}
 			popTitle={`${record.name}`}
+			popDescription={deleteDescription}
+			canConfirmDelete={productsCount === undefined || productsCount === 0}
 		/>
 	);
 };

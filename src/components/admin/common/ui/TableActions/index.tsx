@@ -13,7 +13,6 @@ import { PiInvoice } from 'react-icons/pi';
 import { BiDollar } from 'react-icons/bi';
 
 interface TableActionsProps {
-	record?: Record<string, any>;
 	onEdit?: () => void;
 	onGenerate?: ({
 		title,
@@ -29,13 +28,22 @@ interface TableActionsProps {
 	onCancel?: () => void;
 	onBalance?: () => void;
 	popTitle?: string;
-	popDescription?: string;
+	popDescription?: React.ReactNode;
 	isEditable?: boolean;
 	isCancelable?: boolean;
+	// Para avisos que se calculan al abrir el popconfirm
+	onPopOpenChange?: (open: boolean) => void;
+	canConfirmDelete?: boolean;
+	/**
+	 * Lo decide quien llama. Antes se deducía de `record.quantity`, que solo
+	 * significa stock en la tabla de items de bodega: en la de productos esa
+	 * columna existe pero está siempre en cero, así que cualquier escritura
+	 * suya habría apagado los botones de borrar sin motivo
+	 */
+	hasStock?: boolean;
 }
 
 const TableActions = ({
-	record,
 	onEdit,
 	onGenerate,
 	onShowDetails,
@@ -47,9 +55,13 @@ const TableActions = ({
 	popTitle,
 	popDescription = '¿Estás seguro de que quieres borrar este elemento?',
 	isEditable = true,
-	isCancelable = false
+	isCancelable = false,
+	onPopOpenChange,
+	canConfirmDelete = true,
+	hasStock = false
 }: TableActionsProps) => {
-	const isCancel = popDescription.includes('anular');
+	const isCancel =
+		typeof popDescription === 'string' && popDescription.includes('anular');
 
 	const dropDownItems: MenuProps['items'] = onGenerate && [
 		{
@@ -176,10 +188,12 @@ const TableActions = ({
 					title={popTitle}
 					description={popDescription}
 					onConfirm={onDelete}
+					onOpenChange={onPopOpenChange}
+					okButtonProps={{ disabled: !canConfirmDelete }}
 				>
 					<Tooltip
 						title={
-							!isCancel && (!record || record?.quantity === 0)
+							!isCancel && !hasStock
 								? 'Eliminar'
 								: 'No puedes eliminar un item con cantidad en stock'
 						}
@@ -189,14 +203,10 @@ const TableActions = ({
 							icon={
 								<AiOutlineDelete
 									size={20}
-									color={
-										!isCancel && (!record || record?.quantity === 0)
-											? '#E53535'
-											: '#FCBABA'
-									}
+									color={!isCancel && !hasStock ? '#E53535' : '#FCBABA'}
 								/>
 							}
-							disabled={record && record?.quantity > 0}
+							disabled={hasStock}
 						/>
 					</Tooltip>
 				</PopConfirm>

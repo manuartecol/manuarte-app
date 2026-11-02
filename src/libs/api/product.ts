@@ -107,6 +107,20 @@ export const productLibs = {
 		);
 	},
 
+	// El error sube: quien lo pide necesita distinguir "no hay historial" de "no
+	// se pudo comprobar", y el mensaje del backend es el que explica por qué
+	getProductDeletionPreview: async (
+		productId: string,
+		productVariantId: string
+	): Promise<ProductDeletionPreview> => {
+		const res = await axiosPrivate.get<ProductDeletionPreview>(
+			`${ENV.API.PRODUCTS}/deletion-preview`,
+			{ params: { productId, productVariantId } }
+		);
+
+		return res.data;
+	},
+
 	deleteProduct: async (productId: string, productVariantId: string) => {
 		return await axiosPrivate.delete(`${ENV.API.PRODUCTS}`, {
 			params: {

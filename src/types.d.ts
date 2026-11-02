@@ -86,6 +86,24 @@ interface SubmitProductVariantDto extends ProductVariantStockItem {
 	stocks?: { id: string; currency: string }[];
 }
 
+/**
+ * Lo que el backend responde antes de confirmar un borrado. `blocked` es
+ * inventario vivo, `logical` conserva la fila porque hay documentos que la
+ * referencian, y `physical` la quita
+ */
+interface ProductDeletionPreview {
+	mode: 'physical' | 'logical' | 'blocked';
+	// Todas las filas que la referencian, incluidas las de documentos anulados o
+	// borrados: deciden el modo. Los tres conteos de abajo son solo documentos
+	// vivos y pueden sumar menos
+	historyRows: number;
+	billingItems: number;
+	quoteItems: number;
+	transactionItems: number;
+	stocksWithUnits: { name: string; quantity: number }[];
+	deletesProduct: boolean;
+}
+
 interface ProductCategoryGroup {
 	id: string;
 	name: string;
@@ -97,6 +115,9 @@ interface ProductCategory {
 	cId: string;
 	productCategoryGroupId?: string | null;
 	groupName?: string | null;
+	// Productos vivos que cuelgan de la categoría. Opcional porque una respuesta
+	// vieja en caché puede no traerlo, y entonces el aviso de borrado no afirma
+	productsCount?: number;
 	createdBy: string;
 	updatedBy: string;
 	createdDate: string;

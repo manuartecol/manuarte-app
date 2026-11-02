@@ -14,7 +14,7 @@ const StockItemsHistoryActions = ({ record }: { record: StockItemHistory }) => {
 		});
 	};
 
-	return <TableActions record={record} onShowDetails={handleShowDetails} />;
+	return <TableActions onShowDetails={handleShowDetails} />;
 };
 
 export default StockItemsHistoryActions;
