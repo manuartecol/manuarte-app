@@ -16,7 +16,12 @@ interface ProductVariant {
 	createdDate?: string;
 	updatedDate?: string;
 	deletedDate?: string;
+	// Los del producto al que pertenece, que la tabla de presentaciones trae
+	// aplanados en cada fila
 	productName?: string;
+	productDescription?: string | null;
+	productCategoryId?: string;
+	productCategoryName?: string;
 	stockIds?: string[];
 }
 
@@ -57,6 +62,32 @@ interface ProductVariantStockItem {
 	minQty: number;
 }
 
+/**
+ * Una presentación tal como llega anidada en su producto. No trae los campos
+ * del producto que sí lleva `ProductVariant`, porque ahí ya los tiene el padre
+ */
+interface NestedProductVariant {
+	id: string;
+	vId: string;
+	name: string;
+	active: boolean;
+	productId: string;
+	// Las bodegas donde está activa, y en cuántas existe en total
+	stockIds: string[];
+	stocksCount: number;
+}
+
+interface ProductWithVariants {
+	id: string;
+	pId: string;
+	name: string;
+	description: string | null;
+	productCategoryId: string;
+	productCategoryName: string;
+	variantsCount: number;
+	productVariants: NestedProductVariant[];
+}
+
 interface SubmitProductDto {
 	type?: 'create' | 'update' | 'updateVariant';
 	name: string;
@@ -72,6 +103,14 @@ interface SubmitProductDto {
 	};
 	stockIds?: string[];
 	stocks?: { id: string; currency: string }[];
+}
+
+// Lo que viaja al editar una presentación, que desde que el modal está separado
+// es una acción propia y no un añadido a la del producto
+interface SubmitProductVariantUpdateDto {
+	name: string;
+	active: boolean;
+	stockIds: string[];
 }
 
 interface SubmitProductCategoryDto {
@@ -584,6 +623,7 @@ interface SalesReport {
 
 type DataTable =
 	| ProductVariant
+	| ProductWithVariants
 	| ProductCategory
 	| Staff
 	| Customer
@@ -605,6 +645,8 @@ type Pagination = {
 interface RootState {
 	product: {
 		products: Product[];
+		productsWithVariants: ProductWithVariants[];
+		productsPagination: Pagination;
 		productVariants: ProductVariant[];
 		productVariantsPagination: Pagination;
 	};

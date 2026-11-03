@@ -24,7 +24,12 @@ const PopConfirm = ({
 				variant: 'outlined',
 				color: 'danger'
 			}}
-			placement='left'
+			// `leftTop` y no `left`: anclado por arriba, un aviso que crece solo se
+			// alarga hacia abajo en vez de recolocarse sobre el botón
+			placement='leftTop'
+			// El título es lo más ancho del aviso y puede pasar de 60 caracteres;
+			// sin tope, la caja se estiraba en vez de partir el texto en dos líneas
+			overlayStyle={{ maxWidth: 320 }}
 			icon={<QuestionCircleOutlined style={{ color: 'red' }} />}
 			{...rest}
 		>

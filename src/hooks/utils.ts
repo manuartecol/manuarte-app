@@ -1,13 +1,20 @@
+/**
+ * Mismo criterio que el backend, que compara con `LOWER` y guarda el nombre
+ * recortado: comparando tal cual, "Unidad" y "unidad" pasaban esta validación
+ * y la transacción se caía después, al crear la segunda presentación
+ */
 export const validateUniqueProductVariantsName = (
 	array: ProductVariantStockItem[]
 ): boolean => {
-	const seen = new Set<unknown>();
+	const seen = new Set<string>();
 
 	for (const item of array) {
-		if (seen.has(item.name)) {
+		const name = item.name?.trim().toLowerCase();
+
+		if (seen.has(name)) {
 			return false;
 		}
-		seen.add(item.name);
+		seen.add(name);
 	}
 
 	return true;

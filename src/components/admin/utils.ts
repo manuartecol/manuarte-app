@@ -128,6 +128,20 @@ export const getCitiesData = async ({
 	}
 };
 
+/**
+ * La tabla de Productos pagina con sus propias claves en la URL, para no
+ * compartir la página con la de Presentaciones. Esto traduce la URL a los
+ * parámetros del endpoint
+ */
+export const productsParamsFromSearch = (searchParams: URLSearchParams) => ({
+	page: Number(searchParams.get('productsPage')) || 1,
+	pageSize: Number(searchParams.get('productsPageSize')) || 30,
+	pId: searchParams.get('pId') ?? undefined,
+	productName: searchParams.get('productName') ?? undefined,
+	productDescription: searchParams.get('productDescription') ?? undefined,
+	productCategoryName: searchParams.get('productCategoryName') ?? undefined
+});
+
 export const selectFilterOption = (
 	input: string,
 	option: { value: string; label: string | null } | undefined

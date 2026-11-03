@@ -6,7 +6,7 @@ import {
 	useState
 } from 'react';
 import { Empty, Table, TableColumnsType, TablePaginationConfig } from 'antd';
-import { FilterValue } from 'antd/es/table/interface';
+import { ExpandableConfig, FilterValue } from 'antd/es/table/interface';
 import { useMediaQuery } from 'react-responsive';
 
 /** Selector del contenedor que scrollea, el `Content` del layout del admin. */
@@ -60,6 +60,10 @@ interface CustomTableProps {
 		pagination: TablePaginationConfig,
 		filters: Record<string, FilterValue | null>
 	) => void;
+	// Para las filas que despliegan contenido propio, como un producto con sus
+	// presentaciones
+	expandable?: ExpandableConfig<any>;
+	rowClassName?: (record: any, index: number) => string;
 }
 
 const CustomTable = ({
@@ -67,7 +71,9 @@ const CustomTable = ({
 	dataSource,
 	isLoading = false,
 	pagination,
-	onChange = () => null
+	onChange = () => null,
+	expandable,
+	rowClassName
 }: CustomTableProps) => {
 	const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 	const wrapperRef = useRef<HTMLDivElement>(null);
@@ -235,6 +241,8 @@ const CustomTable = ({
 					...defaultPagination,
 					...(pagination ?? {})
 				}}
+				expandable={expandable}
+				rowClassName={rowClassName}
 				/*
 					Rellenan el envoltorio en vez de imponer su propio alto. Antes cada
 					uno salía de `100vh` con una constante distinta, y eran los que

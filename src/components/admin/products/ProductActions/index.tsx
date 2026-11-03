@@ -13,7 +13,29 @@ import useProductServices from '@/services/product';
 const pluralize = (count: number, singular: string, plural: string) =>
 	`${count} ${count === 1 ? singular : plural}`;
 
-const ProductActions = ({ record }: { record: ProductVariant }) => {
+/**
+ * Todos los estados del aviso pasan por aquí, con el ancho fijo y un alto
+ * mínimo: el contenido cambia de tamaño entre "comprobando" y el resultado, y
+ * sin esto la caja del popconfirm daba un salto al llegar los datos.
+ *
+ * Va fuera del componente a propósito: declarada dentro, React la trataría como
+ * un tipo nuevo en cada render y desmontaría el subárbol cada vez
+ */
+const DescriptionBox = ({ children }: { children: React.ReactNode }) => (
+	<span className='block w-[280px] min-h-[60px]'>{children}</span>
+);
+
+type ProductActionsProps = {
+	record: ProductVariant;
+	// Qué recargar después de borrar. Por defecto, la tabla de presentaciones
+	onDeleted?: () => Promise<void> | void;
+};
+
+/**
+ * Acciones de una presentación: editarla y eliminarla. Los datos del producto
+ * se editan en su propia pestaña, donde la fila es el producto
+ */
+const ProductActions = ({ record, onDeleted }: ProductActionsProps) => {
 	const { openModal } = useModalStore.getState();
 	const dispatch = useDispatch();
 	const searchParams = useSearchParams();
@@ -24,8 +46,8 @@ const ProductActions = ({ record }: { record: ProductVariant }) => {
 
 	const handleEdit = () => {
 		openModal({
-			title: 'Editar Producto',
-			content: ModalContent.products,
+			title: 'Editar Presentación',
+			content: ModalContent.productVariantEdit,
 			dataToHandle: record
 		});
 	};
@@ -35,10 +57,14 @@ const ProductActions = ({ record }: { record: ProductVariant }) => {
 	 * tabla no sabe cuántas presentaciones tiene el producto ni qué historial
 	 * arrastra, y el aviso sale del mismo cálculo que hace el borrado
 	 */
+	/**
+	 * La vista previa anterior no se borra al reabrir: se deja a la vista y se
+	 * refresca por detrás, así el aviso no vuelve a nacer vacío. Es seguro
+	 * porque no decide nada, el backend recalcula el plan al borrar
+	 */
 	const handlePopOpenChange = async (open: boolean) => {
 		if (!open) return;
 
-		setPreview(null);
 		setPreviewError(null);
 		setIsLoadingPreview(true);
 		try {
@@ -74,7 +100,11 @@ const ProductActions = ({ record }: { record: ProductVariant }) => {
 					message: res.data.message
 				});
 				// Recarga la página actual para que el total de la paginación baje
-				await getProductVariants(Object.fromEntries(searchParams.entries()));
+				if (onDeleted) {
+					await onDeleted();
+				} else {
+					await getProductVariants(Object.fromEntries(searchParams.entries()));
+				}
 			}
 		} catch (error) {
 			console.error(error);
@@ -87,16 +117,18 @@ const ProductActions = ({ record }: { record: ProductVariant }) => {
 	};
 
 	const deleteDescription = () => {
-		if (isLoadingPreview) return 'Comprobando qué pasará...';
+		if (!preview && isLoadingPreview) {
+			return <DescriptionBox>Comprobando qué pasará...</DescriptionBox>;
+		}
 
 		// Sin vista previa no se puede decir qué va a pasar, así que tampoco se
 		// deja confirmar: el botón Sí se apaga desde `canConfirmDelete`
 		if (!preview) {
 			return (
-				<span className='block max-w-[280px]'>
+				<DescriptionBox>
 					{previewError ?? 'No se pudo comprobar qué pasará si la eliminas'}.
 					Cierra este aviso y vuelve a intentarlo.
-				</span>
+				</DescriptionBox>
 			);
 		}
 
@@ -106,10 +138,10 @@ const ProductActions = ({ record }: { record: ProductVariant }) => {
 				.join(', ');
 
 			return (
-				<span className='block max-w-[280px]'>
+				<DescriptionBox>
 					No se puede eliminar, porque tiene unidades en {detail}. Sácalas con
 					un movimiento de salida y vuelve a intentarlo.
-				</span>
+				</DescriptionBox>
 			);
 		}
 
@@ -126,7 +158,7 @@ const ProductActions = ({ record }: { record: ProductVariant }) => {
 		].filter(Boolean);
 
 		return (
-			<span className='block max-w-[280px]'>
+			<DescriptionBox>
 				{preview.mode === 'logical' ? (
 					<>
 						{documents.length > 0
@@ -147,7 +179,7 @@ const ProductActions = ({ record }: { record: ProductVariant }) => {
 						se elimina.
 					</>
 				) : null}
-			</span>
+			</DescriptionBox>
 		);
 	};
 

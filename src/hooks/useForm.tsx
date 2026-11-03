@@ -53,7 +53,9 @@ notification.config({
 interface handleSubmitProps {
 	serviceFn: (values: any) => Promise<AxiosResponse>;
 	values: any;
-	onSuccess: (res: AxiosResponse) => void;
+	// `unknown` y no `void`: casi todos devuelven lo que devuelve `dispatch`, y
+	// algunos son asíncronos y hay que esperarlos
+	onSuccess: (res: AxiosResponse) => unknown;
 	modal?: boolean;
 }
 
@@ -79,7 +81,26 @@ const useForm = () => {
 				notification.success({
 					message: res.data.message ?? 'Operación realizada con éxito'
 				});
-				onSuccess(res);
+
+				/**
+				 * Se espera, y con su propio `catch`. Sin esperarlo, un `onSuccess`
+				 * asíncrono que fallara se perdía como promesa rechazada sin dueño: ni
+				 * aviso ni rastro, y la tabla se quedaba sin recargar como si todo
+				 * hubiera ido bien. Y va aparte del `catch` de abajo porque aquí el
+				 * guardado ya salió bien: lo que falló es lo de después, así que el
+				 * modal se cierra igual y el aviso lo dice
+				 */
+				try {
+					await onSuccess(res);
+				} catch (error) {
+					console.error(error);
+					notification.warning({
+						message: 'Se guardó, pero la lista no se pudo actualizar',
+						description: error instanceof Error ? error.message : String(error),
+						duration: 0
+					});
+				}
+
 				closeModal();
 				closeDrawer();
 			}
@@ -98,13 +119,21 @@ const useForm = () => {
 
 	const submitCreateProduct = async (
 		values: SubmitProductDto,
-		stockIds?: string[]
+		stockIds?: string[],
+		reloadTable?: () => Promise<void>
 	) => {
-		const pVariantsAreUnique =
-			values.productVariants &&
-			validateUniqueProductVariantsName(values.productVariants);
+		/**
+		 * Las dos causas, separadas. Antes iban en la misma condición y una lista
+		 * vacía o sin definir salía con el mensaje de nombres repetidos, que no
+		 * dice nada de lo que pasa, y el producto no se creaba
+		 */
+		if (!values.productVariants?.length) {
+			return notification.error({
+				message: 'El producto necesita al menos una presentación'
+			});
+		}
 
-		if (!pVariantsAreUnique) {
+		if (!validateUniqueProductVariantsName(values.productVariants)) {
 			return notification.error({
 				message:
 					'Estás intentando crear más de una presentación con el mismo nombre'
@@ -114,8 +143,10 @@ const useForm = () => {
 		await handleSubmit({
 			serviceFn: productLibs.createProduct,
 			values,
-			onSuccess: res =>
-				dispatch(addProduct({ newProduct: res.data.newProduct, stockIds }))
+			onSuccess: async res => {
+				await reloadTable?.();
+				dispatch(addProduct({ newProduct: res.data.newProduct, stockIds }));
+			}
 		});
 	};
 
@@ -140,19 +171,30 @@ const useForm = () => {
 	const submitAddProductVariant = async (
 		values: Omit<SubmitProductVariantDto, 'productId'>,
 		productId: string,
-		stockIds?: string[]
+		stockIds?: string[],
+		reloadTable?: () => Promise<void>
 	) => {
 		await handleSubmit({
 			serviceFn: async newVariantValues =>
 				productLibs.addProductVariant(newVariantValues, productId),
 			values,
-			onSuccess: res =>
-				dispatch(addProductVariant({ ...res.data.newProductVariant, stockIds }))
+			onSuccess: async res => {
+				dispatch(
+					addProductVariant({ ...res.data.newProductVariant, stockIds })
+				);
+				await reloadTable?.();
+			}
 		});
 	};
 
+	/**
+	 * El cuerpo viaja plano, que es lo que espera `PUT /product-variants/:id`.
+	 * Antes se le pasaba el del producto con la presentación dentro y era
+	 * `libs/api` quien lo desarmaba; ahora que editar una presentación es una
+	 * acción propia, no hay nada que desarmar
+	 */
 	const submitUpdateProductVariant = async (
-		values: SubmitProductDto,
+		values: SubmitProductVariantUpdateDto,
 		productVariantId: string,
 		reloadTable?: () => Promise<void>
 	) => {
@@ -161,12 +203,7 @@ const useForm = () => {
 				productLibs.updateProductVariant(valuesToUpdate, productVariantId),
 			values,
 			onSuccess: async () => {
-				dispatch(
-					updateProductVariant({
-						...values.productVariant,
-						stockIds: values.stockIds
-					})
-				);
+				dispatch(updateProductVariant({ id: productVariantId, ...values }));
 				await reloadTable?.();
 			}
 		});

@@ -9,6 +9,15 @@ type ProductVariantApiResponse = {
 	totalPages: number;
 };
 
+export type ProductParams = {
+	page?: number;
+	pageSize?: number;
+	pId?: string;
+	productName?: string;
+	productDescription?: string;
+	productCategoryName?: string;
+};
+
 export type ProductVariantParams = {
 	page?: number;
 	pageSize?: number;
@@ -20,10 +29,36 @@ export type ProductVariantParams = {
 	showActiveOnly?: string;
 };
 
+// Todas las claves que la página de Productos lee de la URL: las de las dos
+// tablas juntas, porque comparte una sola barra de direcciones
+export type ProductsPageParams = ProductVariantParams & {
+	tab?: string;
+	productsPage?: string;
+	productsPageSize?: string;
+	pId?: string;
+};
+
 export const productLibs = {
 	getAllProducts: async () => {
 		try {
 			const res = await axiosPrivate.get(ENV.API.PRODUCTS);
+
+			return res.data;
+		} catch (error) {
+			console.error(error);
+		}
+	},
+
+	// Los productos con sus presentaciones anidadas, paginando por producto
+	getProductsWithVariants: async (params?: ProductParams) => {
+		try {
+			const res = await axiosPrivate.get<{
+				products: ProductWithVariants[];
+				total: number;
+				page: number;
+				pageSize: number;
+				totalPages: number;
+			}>(`${ENV.API.PRODUCTS}/with-variants`, { params });
 
 			return res.data;
 		} catch (error) {
@@ -94,16 +129,12 @@ export const productLibs = {
 	},
 
 	updateProductVariant: async (
-		body: SubmitProductDto,
+		body: SubmitProductVariantUpdateDto,
 		productVariantId: string
 	) => {
 		return await axiosPrivate.put(
 			`${ENV.API.PRODUCT_VARIANTS}/${productVariantId}`,
-			{
-				name: body?.productVariant?.name,
-				active: body?.productVariant?.active,
-				stockIds: body?.stockIds
-			}
+			body
 		);
 	},
 

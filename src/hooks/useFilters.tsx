@@ -5,7 +5,15 @@ import { FilterValue } from 'antd/es/table/interface';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 
-const useFilters = () => {
+/**
+ * `pageKey` y `pageSizeKey` existen para que dos tablas en la misma pantalla no
+ * compartan la página: la de Productos y la de Presentaciones tienen distinto
+ * número de filas, así que una página 4 de una no significa nada en la otra
+ */
+const useFilters = ({
+	pageKey = 'page',
+	pageSizeKey = 'pageSize'
+}: { pageKey?: string; pageSizeKey?: string } = {}) => {
 	const [tableFilters, setTableFilters] = useState<
 		Record<string, FilterValue | null>
 	>({});
@@ -18,8 +26,8 @@ const useFilters = () => {
 	) => {
 		const params = objectToSearchParams(searchParams);
 
-		params.set('page', String(pagination.current ?? 1));
-		params.set('pageSize', String(pagination.pageSize ?? 10));
+		params.set(pageKey, String(pagination.current ?? 1));
+		params.set(pageSizeKey, String(pagination.pageSize ?? 10));
 
 		Object.entries(filters).forEach(([key, value]) => {
 			if (key.toLocaleLowerCase().includes('date')) {

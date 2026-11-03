@@ -42,7 +42,7 @@ const ProductVariantFormList = ({
 						<div key={field.key}>
 							<Divider orientation='left' style={{ borderColor: '#00000032' }}>
 								<div className='flex items-center gap-4'>
-									Presentacion {index + 1}{' '}
+									Presentación {index + 1}{' '}
 									{fields.length > 0 && !isUpdating ? (
 										<Tooltip title='Remover presentación'>
 											<IoRemoveCircleOutline

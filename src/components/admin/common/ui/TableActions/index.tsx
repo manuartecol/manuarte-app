@@ -13,6 +13,9 @@ import { PiInvoice } from 'react-icons/pi';
 import { BiDollar } from 'react-icons/bi';
 
 interface TableActionsProps {
+	// Botones propios del dominio, antes del resto. Evita ir añadiendo un prop
+	// por cada acción nueva de una sola tabla
+	extraActions?: React.ReactNode;
 	onEdit?: () => void;
 	onGenerate?: ({
 		title,
@@ -44,6 +47,7 @@ interface TableActionsProps {
 }
 
 const TableActions = ({
+	extraActions,
 	onEdit,
 	onGenerate,
 	onShowDetails,
@@ -106,6 +110,8 @@ const TableActions = ({
 
 	return (
 		<Space size='small'>
+			{extraActions}
+
 			{onEdit ? (
 				<Tooltip title={isEditable ? 'Editar' : ''}>
 					<Button

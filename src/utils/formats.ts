@@ -101,7 +101,17 @@ export const objectToSearchParams = (
 ): URLSearchParams => {
 	const params = new URLSearchParams();
 	Object.entries(obj).forEach(([key, value]) => {
-		if (value !== undefined) params.set(key, String(value));
+		if (value === undefined) return;
+
+		// Un parámetro repetido en la URL llega como array. Con `String(value)` se
+		// colapsaba a "a,b" y el filtro dejaba de encontrar nada
+		if (Array.isArray(value)) {
+			value.forEach(item => params.append(key, String(item)));
+
+			return;
+		}
+
+		params.set(key, String(value));
 	});
 	return params;
 };

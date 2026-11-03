@@ -3,6 +3,15 @@ import { formatProductVariantState } from '../utils';
 
 const initialState = {
 	products: [] as Product[],
+	// La pestaña Productos: cada producto con sus presentaciones anidadas. Va
+	// aparte de `products`, que es la lista plana que alimenta los selects
+	productsWithVariants: [] as ProductWithVariants[],
+	productsPagination: {
+		total: 0,
+		page: 1,
+		pageSize: 30,
+		totalPages: 1
+	} as Pagination,
 	productVariants: [] as ProductVariant[],
 	productVariantsPagination: {
 		total: 0,
@@ -18,6 +27,16 @@ export const productSlice = createSlice({
 	reducers: {
 		setProducts: (state, action) => {
 			state.products = action.payload;
+		},
+
+		setProductsWithVariants: (state, action) => {
+			state.productsWithVariants = action.payload.products;
+			state.productsPagination = {
+				total: action.payload.total,
+				page: action.payload.page,
+				pageSize: action.payload.pageSize,
+				totalPages: action.payload.totalPages
+			};
 		},
 
 		setProductVariants: (state, action) => {
@@ -62,13 +81,18 @@ export const productSlice = createSlice({
 						)
 					: [];
 
-			// Lo del producto va a todas sus presentaciones; el nombre y los
-			// `stockIds` son solo de la editada. Antes los `stockIds` se copiaban a
-			// las hermanas, que en la tabla aparecían en bodegas donde no estaban
+			/**
+			 * Lo del producto va a todas sus presentaciones; el nombre y los
+			 * `stockIds` son solo de la editada. Antes los `stockIds` se copiaban a
+			 * las hermanas, que en la tabla aparecían en bodegas donde no estaban.
+			 *
+			 * `productVariant` puede no venir: editar el producto ya no arrastra
+			 * ninguna presentación
+			 */
 			const newProductVariantData = state.productVariants.map(pv => {
 				if (pv.productId !== product.id) return pv;
 
-				const isEdited = pv.id === productVariant.id;
+				const isEdited = productVariant ? pv.id === productVariant.id : false;
 
 				return {
 					...pv,
@@ -128,6 +152,7 @@ export const productSlice = createSlice({
 
 export const {
 	setProducts,
+	setProductsWithVariants,
 	setProductVariants,
 	addProduct,
 	updateProduct,

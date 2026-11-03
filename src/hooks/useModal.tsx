@@ -1,5 +1,6 @@
 import ProductForm from '@/components/admin/products/ProductForm';
 import ProductVariantForm from '@/components/admin/products/ProductVariantForm';
+import ProductVariantEditForm from '@/components/admin/products/ProductVariantEditForm';
 import ProductCategoryForm from '@/components/admin/products/ProductCategoryForm';
 import StaffForm from '@/components/admin/users/StaffForm';
 import PermissionsForm from '@/components/admin/users/PermissionsForm';
@@ -23,6 +24,7 @@ const useModal = () => {
 	const MODAL_CONTENT: Record<ModalContent, ReactNode> = {
 		[ModalContent.products]: <ProductForm />,
 		[ModalContent.productVariants]: <ProductVariantForm />,
+		[ModalContent.productVariantEdit]: <ProductVariantEditForm />,
 		[ModalContent.productCategories]: <ProductCategoryForm />,
 		[ModalContent.staff]: <StaffForm />,
 		[ModalContent.permissions]: <PermissionsForm />,

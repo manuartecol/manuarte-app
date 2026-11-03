@@ -13,7 +13,7 @@ const ProductCategoryActions = ({ record }: { record: ProductCategory }) => {
 
 	const handleEdit = () => {
 		openModal({
-			title: 'Editar categoría de producto',
+			title: 'Editar Categoría',
 			content: ModalContent.productCategories,
 			dataToHandle: record
 		});

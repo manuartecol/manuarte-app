@@ -6,21 +6,43 @@ import SelectStocks from '../SelectStocks';
 import useProductServices from '@/services/product';
 import useForm from '@/hooks/useForm';
 import { formatInputCurrency } from '@/utils/formats';
-import { selectFilterOption } from '../../utils';
+import { productsParamsFromSearch, selectFilterOption } from '../../utils';
 import { PRODUCT_VARIANT_PROPS } from '../../consts';
+import { useModalStore } from '@/stores/modalStore';
+import { useSearchParams } from 'next/navigation';
 
 const ProductVariantForm = () => {
 	const { form, isLoading, submitAddProductVariant } = useForm();
 	const { products } = useSelector((state: RootState) => state.product);
 	const { shops } = useSelector((state: RootState) => state.shop);
 	const [isQuitoSelected, setIsQuitoSelected] = useState(true);
-	const { getProducts } = useProductServices();
+	const { getProducts, getProductVariants, getProductsWithVariants } =
+		useProductServices();
+	const { dataToHandle } = useModalStore.getState();
+	const searchParams = useSearchParams();
+	// Abierto desde la fila de un producto: ese producto ya está decidido
+	const fixedProduct = dataToHandle?.productId
+		? { id: dataToHandle.productId as string, name: dataToHandle.productName }
+		: null;
 
 	useEffect(() => {
+		if (fixedProduct) {
+			form.setFieldsValue({ productId: fixedProduct.id });
+			return;
+		}
+
 		if (products.length > 0) return;
 
 		getProducts();
 	}, []);
+
+	// La presentación nueva entra en las dos pestañas
+	const reloadTables = async () => {
+		await Promise.all([
+			getProductVariants(Object.fromEntries(searchParams.entries())),
+			getProductsWithVariants(productsParamsFromSearch(searchParams))
+		]);
+	};
 
 	const onSubmit = (values: SubmitProductVariantDto) => {
 		const { productId, priceUsd, costUsd, stockIds, ...restValues } = values;
@@ -35,15 +57,22 @@ const ProductVariantForm = () => {
 				return { id: filtShop.stockId, currency: filtShop.currency };
 			});
 
-		submitAddProductVariant({ ...cleanedValues, stocks }, productId, stockIds);
+		submitAddProductVariant(
+			{ ...cleanedValues, stocks },
+			productId,
+			stockIds,
+			reloadTables
+		);
 	};
 
-	const productOptions = products?.map(p => {
-		return {
-			value: p.id,
-			label: p.name
-		};
-	});
+	const productOptions = fixedProduct
+		? [{ value: fixedProduct.id, label: fixedProduct.name }]
+		: products?.map(p => {
+				return {
+					value: p.id,
+					label: p.name
+				};
+			});
 
 	const getFilteredInputs = () => {
 		if (isQuitoSelected) {
@@ -88,17 +117,22 @@ const ProductVariantForm = () => {
 			>
 				<Select
 					placeholder='Selecciona un producto'
-					allowClear
+					allowClear={!fixedProduct}
 					showSearch
 					filterOption={selectFilterOption}
 					options={productOptions}
+					disabled={Boolean(fixedProduct)}
 				/>
 			</Form.Item>
 
-			<SelectStocks form={form} setIsQuitoSelected={setIsQuitoSelected} />
+			<SelectStocks
+				form={form}
+				setIsQuitoSelected={setIsQuitoSelected}
+				label='Crear en las siguientes bodegas:'
+			/>
 
 			<Divider orientation='left' style={{ borderColor: '#00000032' }}>
-				Presentacion
+				Presentación
 			</Divider>
 			<div className='flex flex-col'>
 				{/* Nombre y cantidades */}
