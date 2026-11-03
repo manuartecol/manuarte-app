@@ -20,10 +20,16 @@ const useCustomerService = () => {
 	const { handleSubmit } = useForm();
 	const dispatch = useDispatch();
 
+	/**
+	 * Las guardas de este archivo comprueban la forma de la respuesta antes de
+	 * guardarla: un cuerpo que no la cumpla deja los datos como estaban, en vez
+	 * de meter `undefined` en el store y romper la siguiente escritura
+	 */
 	const getAllCustomers = async (params?: CustomerParams) => {
 		try {
 			setIsLoading(true);
 			const data = await customerLibs.getAllCustomers(params);
+			if (!Array.isArray(data?.customers)) return;
 
 			dispatch(setCustomers(data));
 		} catch (error) {
@@ -39,6 +45,7 @@ const useCustomerService = () => {
 			const data = await customerLibs.getTopCustomers({
 				...params
 			});
+			if (!Array.isArray(data?.topCustomers)) return;
 
 			dispatch(setTopCustomersCO(data));
 
@@ -56,6 +63,8 @@ const useCustomerService = () => {
 			const data = await customerLibs.getTopCustomers({
 				...params
 			});
+			if (!Array.isArray(data?.topCustomers)) return;
+
 			dispatch(setTopCustomersEC(data));
 
 			return data.topCustomers;

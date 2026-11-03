@@ -12,7 +12,11 @@ const StaffTable = ({ staffData }: { staffData: Staff[] }) => {
 	const dispatch = useDispatch();
 
 	useEffect(() => {
-		dispatch(setStaff(staffData));
+		// Sin la comprobación, una respuesta que no sea un arreglo deja el store
+		// con un valor que rompe el alta de un staff nuevo
+		if (Array.isArray(staffData)) {
+			dispatch(setStaff(staffData));
+		}
 		setIsLoading(false);
 	}, []);
 
