@@ -132,6 +132,10 @@ interface SubmitProductVariantDto extends ProductVariantStockItem {
  */
 interface ProductDeletionPreview {
 	mode: 'physical' | 'logical' | 'blocked';
+	// El motivo ya redactado por el backend, o null si no está bloqueado. Es el
+	// mismo texto que lanza el borrado al confirmar, para que el aviso previo y
+	// el error no puedan discrepar
+	blockedMessage: string | null;
 	// Todas las filas que la referencian, incluidas las de documentos anulados o
 	// borrados: deciden el modo. Los tres conteos de abajo son solo documentos
 	// vivos y pueden sumar menos
@@ -140,6 +144,18 @@ interface ProductDeletionPreview {
 	quoteItems: number;
 	transactionItems: number;
 	stocksWithUnits: { name: string; quantity: number }[];
+	// Transferencias creadas y sin aceptar. Sus unidades salieron del origen y
+	// aún no entraron al destino, así que no están en `stocksWithUnits`
+	pendingTransfers: {
+		id: string;
+		name: string;
+		createdDate: string;
+		fromId: string | null;
+		fromName: string | null;
+		toId: string | null;
+		toName: string | null;
+		quantity: number;
+	}[];
 	deletesProduct: boolean;
 }
 

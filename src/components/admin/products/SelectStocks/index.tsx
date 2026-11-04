@@ -15,6 +15,12 @@ interface Props {
 	stocks?: string[];
 	canRemoveMainStock?: boolean;
 	helpText?: string;
+	/**
+	 * Aviso fijo bajo el selector. Lo pone quien lo usa porque quitar una bodega
+	 * no significa lo mismo en los dos sitios: editando una presentación la
+	 * desactiva ahí, y creándola solo evita crearla en esa bodega
+	 */
+	removalHint?: string;
 }
 
 const SelectStocks = ({
@@ -24,7 +30,8 @@ const SelectStocks = ({
 	updatingStockItem,
 	stocks,
 	canRemoveMainStock,
-	helpText
+	helpText,
+	removalHint
 }: Props) => {
 	const { shops } = useSelector((state: RootState) => state.shop);
 	const [stockOptions, setStockOptions] = useState<
@@ -99,10 +106,21 @@ const SelectStocks = ({
 			help={
 				helpText ? <span className='text-blue-400'>{helpText}</span> : undefined
 			}
+			extra={
+				removalHint ? (
+					<span className='text-xs text-gray-500'>{removalHint}</span>
+				) : undefined
+			}
 		>
 			<Select
 				placeholder='Seleccione las bodegas'
-				allowClear
+				/**
+				 * Sin `allowClear`. En la edición de una presentación un clic en la
+				 * aspa de limpiar vaciaba la lista entera, o sea que la desactivaba en
+				 * todas las bodegas de golpe, sin confirmación y con el único aviso
+				 * apareciendo después. Se quitan de una en una, que es lo que se quiere
+				 * hacer de verdad
+				 */
 				showSearch
 				mode='multiple'
 				tagRender={({ label, value, closable, onClose }) => {

@@ -132,15 +132,17 @@ const ProductActions = ({ record, onDeleted }: ProductActionsProps) => {
 			);
 		}
 
+		/**
+		 * El motivo lo redacta el backend y viaja en `blockedMessage`: es el mismo
+		 * texto que lanza el borrado si se confirma de todas formas, así que el
+		 * aviso y el error no pueden decir cosas distintas. Las unidades en stock y
+		 * las transferencias sin aceptar salen las dos ahí cuando se dan juntas
+		 */
 		if (preview.mode === 'blocked') {
-			const detail = preview.stocksWithUnits
-				.map(stock => `${stock.name} (${stock.quantity})`)
-				.join(', ');
-
 			return (
 				<DescriptionBox>
-					No se puede eliminar, porque tiene unidades en {detail}. Sácalas con
-					un movimiento de salida y vuelve a intentarlo.
+					{preview.blockedMessage ??
+						'No se puede eliminar la presentación todavía.'}
 				</DescriptionBox>
 			);
 		}

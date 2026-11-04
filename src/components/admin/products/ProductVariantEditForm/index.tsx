@@ -101,6 +101,7 @@ const ProductVariantEditForm = () => {
 				label='Activa en las siguientes bodegas:'
 				canRemoveMainStock={true}
 				stocks={dataToHandle?.stockIds}
+				removalHint='Quitar una bodega desactiva ahí la presentación: deja de ofrecerse en esa bodega. No se borra nada ni se pierden movimientos, y no se puede quitar una bodega con unidades o con una transferencia sin aceptar.'
 				helpText={
 					stockIdsValues?.length === 0
 						? 'La presentación no se mostrará en ninguna bodega'
