@@ -10,9 +10,11 @@ const CustomModal = () => {
 	const [width, setWidth] = useState(500);
 
 	const WIDTH: Record<string, number> = {
-		products: 600,
-		productVariants: 600,
-		productVariantEdit: 600,
+		// Crear un producto lleva el bloque de ejes de cada presentación (cantidad,
+		// unidad, envase) además de precios y límites: a 600 se partía en dos filas
+		products: 760,
+		productVariants: 700,
+		productVariantEdit: 700,
 		stockItems: 600,
 		billings: 600
 	};
@@ -34,6 +36,13 @@ const CustomModal = () => {
 			centered
 			width={width}
 			footer={null}
+			/**
+			 * El scroll va en el cuerpo y no en la ventana: un formulario alto hacía
+			 * desplazar el diálogo entero, con el título fuera de vista y los botones
+			 * a varias pantallas. Los desplegables de antd se montan en `body`, así
+			 * que no los recorta
+			 */
+			styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
 		>
 			{modalContent}
 		</Modal>

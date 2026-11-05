@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Form, Input, Select } from 'antd';
+import { useWatch } from 'antd/es/form/Form';
 import { useSelector } from 'react-redux';
 import ProductVariantFormList from '../ProductVariantFormList';
 import FormButtons from '../../common/ui/FormButtons';
 import useForm from '@/hooks/useForm';
 import SelectStocks from '../SelectStocks';
+import { CAPACITY_CATEGORY_GROUP } from '../../consts';
 import { productsParamsFromSearch, selectFilterOption } from '../../utils';
 import { useModalStore } from '@/stores/modalStore';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -28,7 +30,12 @@ const ProductForm = () => {
 	const [isQuitoSelected, setIsQuitoSelected] = useState(true);
 	const searchParams = useSearchParams();
 	const router = useRouter();
-	const { getProductVariants, getProductsWithVariants } = useProductServices();
+	const { getProductVariants, getProductsWithVariants, getVariantCatalog } =
+		useProductServices();
+	const productCategoryId = useWatch('productCategoryId', form);
+	const [catalogFailed, setCatalogFailed] = useState(false);
+	// La primera presentación abierta; las demás se plegan
+	const [openVariants, setOpenVariants] = useState<string[]>(['0']);
 
 	/**
 	 * Tras editar se recargan las dos tablas con sus filtros. Ajustar la lista a
@@ -46,11 +53,18 @@ const ProductForm = () => {
 	/**
 	 * Tras crear, la tabla se queda filtrada por el producto nuevo. Ordena por
 	 * nombre y pagina de 30, así que una fila recién creada puede caer a veinte
-	 * páginas de distancia y parecer que no se guardó. Se limpian los otros
-	 * filtros de producto porque el nuevo puede no cumplirlos y seguiría
-	 * invisible; cambiar la URL ya dispara la consulta de las dos tablas
+	 * páginas de distancia y parecer que no se guardó. Se limpian todos los demás
+	 * filtros de las dos tablas porque el nuevo puede no cumplirlos y seguiría
+	 * invisible: con el selector en Inactivas o un filtro de presentación puesto,
+	 * el producto salía en Productos y en Presentaciones no.
+	 *
+	 * Las dos consultas se hacen aquí con los parámetros nuevos, y no se espera a
+	 * que las dispare el cambio de URL. Los efectos de las tablas dependen de los
+	 * valores de los filtros, así que creando un producto cuyo nombre ya estaba en
+	 * el filtro la URL no cambiaba, no había consulta, y el producto recién creado
+	 * no aparecía en ninguna de las dos pestañas
 	 */
-	const focusOnCreatedProduct = (name: string) => {
+	const focusOnCreatedProduct = async (name: string) => {
 		const params = new URLSearchParams(searchParams.toString());
 
 		params.set('productName', name);
@@ -59,8 +73,18 @@ const ProductForm = () => {
 		params.delete('pId');
 		params.delete('productDescription');
 		params.delete('productCategoryName');
+		params.delete('vId');
+		params.delete('name');
+		params.delete('showActiveOnly');
 
 		router.replace(`?${params.toString()}`);
+
+		const nextParams = new URLSearchParams(params);
+
+		await Promise.all([
+			getProductVariants(Object.fromEntries(nextParams.entries())),
+			getProductsWithVariants(productsParamsFromSearch(nextParams))
+		]);
 	};
 
 	useEffect(() => {
@@ -70,7 +94,12 @@ const ProductForm = () => {
 				description: dataToHandle.productDescription,
 				productCategoryId: dataToHandle.productCategoryId
 			});
+
+			return;
 		}
+
+		// Solo al crear: editar el producto no toca las presentaciones
+		getVariantCatalog().then(loaded => setCatalogFailed(!loaded));
 	}, []);
 
 	const onSubmit = (values: SubmitProductDto) => {
@@ -94,7 +123,7 @@ const ProductForm = () => {
 					return { id: filtShop.stockId, currency: filtShop.currency };
 				});
 
-			submitCreateProduct({ ...cleanedValues, stocks }, stockIds, async () =>
+			submitCreateProduct({ ...cleanedValues, stocks }, async () =>
 				focusOnCreatedProduct(values.name.trim())
 			);
 
@@ -122,6 +151,16 @@ const ProductForm = () => {
 		};
 	});
 
+	/**
+	 * En los productos de envases el número es la capacidad del recipiente y no
+	 * la cantidad de producto, así que la etiqueta del campo cambia. Solo la
+	 * etiqueta: el flag que entra en la firma lo deduce el backend del mismo
+	 * grupo, para que no dependa de lo que mande el formulario
+	 */
+	const isCapacityCategory =
+		productCategories?.find(pCat => pCat.id === productCategoryId)
+			?.groupName === CAPACITY_CATEGORY_GROUP;
+
 	return (
 		<Form
 			layout='vertical'
@@ -130,6 +169,37 @@ const ProductForm = () => {
 			initialValues={{ modifier: 'public' }}
 			clearOnDestroy
 			onFinish={values => onSubmit(values)}
+			/**
+			 * El panel de la presentación con el error se abre al fallar el guardado.
+			 * Los campos de un panel plegado siguen montados y se validan, pero su
+			 * aviso queda escondido, así que sin esto el formulario se negaba a
+			 * guardar sin decir dónde
+			 */
+			onFinishFailed={({ errorFields }) => {
+				const firstVariantError = errorFields.find(
+					errorField => errorField.name[0] === 'productVariants'
+				);
+
+				if (!firstVariantError) return;
+
+				setOpenVariants([String(firstVariantError.name[1])]);
+
+				/**
+				 * Y el campo a la vista. Abrir el panel no basta: con varias
+				 * presentaciones el error puede quedar fuera de pantalla y el
+				 * formulario parece negarse a guardar sin decir nada. El retardo es
+				 * el de la animación del acordeón, porque un panel plegado sigue
+				 * oculto y no se puede desplazar hasta él
+				 */
+				setTimeout(
+					() =>
+						form.scrollToField(firstVariantError.name, {
+							behavior: 'smooth',
+							block: 'center'
+						}),
+					300
+				);
+			}}
 		>
 			<Form.Item
 				name='name'
@@ -188,8 +258,13 @@ const ProductForm = () => {
 						]}
 					>
 						<ProductVariantFormList
+							form={form}
 							isUpdating={isUpdating}
 							isQuitoSelected={isQuitoSelected}
+							isCapacity={isCapacityCategory}
+							catalogFailed={catalogFailed}
+							activeKey={openVariants}
+							onActiveKeyChange={setOpenVariants}
 						/>
 					</Form.Item>
 				</>
@@ -198,6 +273,9 @@ const ProductForm = () => {
 			<FormButtons
 				label={isUpdating ? 'Editar' : undefined}
 				isLoading={isLoading}
+				// Fijos abajo: con varias presentaciones el formulario es más alto que
+				// el modal, y guardar no debe depender de haber bajado del todo
+				sticky={!isUpdating}
 			/>
 		</Form>
 	);

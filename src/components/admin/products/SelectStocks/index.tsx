@@ -103,12 +103,22 @@ const SelectStocks = ({
 					message: 'Debe seleccionar al menos 1 bodega (Fabrica Cascajal)'
 				}
 			]}
-			help={
-				helpText ? <span className='text-blue-400'>{helpText}</span> : undefined
-			}
+			/**
+			 * Los dos en `extra`, y no `helpText` en `help`. Con `help` antd anula el
+			 * margen inferior del campo, porque cuenta con que el aviso lo ocupe; junto
+			 * a `removalHint` ese margen desaparecía y el texto quedaba a 0px de los
+			 * botones justo al quitar la última bodega
+			 */
 			extra={
-				removalHint ? (
-					<span className='text-xs text-gray-500'>{removalHint}</span>
+				helpText || removalHint ? (
+					<>
+						{helpText ? (
+							<span className='block text-blue-400'>{helpText}</span>
+						) : null}
+						{removalHint ? (
+							<span className='block text-xs text-gray-500'>{removalHint}</span>
+						) : null}
+					</>
 				) : undefined
 			}
 		>
