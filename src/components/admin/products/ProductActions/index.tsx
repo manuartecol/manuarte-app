@@ -9,6 +9,7 @@ import { useModalStore } from '@/stores/modalStore';
 import { AxiosError } from 'axios';
 import { ModalContent } from '@/types/enums';
 import useProductServices from '@/services/product';
+import { productsParamsFromSearch } from '../../utils';
 
 const pluralize = (count: number, singular: string, plural: string) =>
 	`${count} ${count === 1 ? singular : plural}`;
@@ -27,7 +28,7 @@ const DescriptionBox = ({ children }: { children: React.ReactNode }) => (
 
 type ProductActionsProps = {
 	record: ProductVariant;
-	// Qué recargar después de borrar. Por defecto, la tabla de presentaciones
+	// Qué recargar después de borrar. Por defecto, las dos tablas
 	onDeleted?: () => Promise<void> | void;
 };
 
@@ -39,7 +40,7 @@ const ProductActions = ({ record, onDeleted }: ProductActionsProps) => {
 	const { openModal } = useModalStore.getState();
 	const dispatch = useDispatch();
 	const searchParams = useSearchParams();
-	const { getProductVariants } = useProductServices();
+	const { getProductVariants, getProductsWithVariants } = useProductServices();
 	const [preview, setPreview] = useState<ProductDeletionPreview | null>(null);
 	const [previewError, setPreviewError] = useState<string | null>(null);
 	const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -99,11 +100,16 @@ const ProductActions = ({ record, onDeleted }: ProductActionsProps) => {
 				notification.success({
 					message: res.data.message
 				});
-				// Recarga la página actual para que el total de la paginación baje
+				// Recarga la página actual para que el total de la paginación baje. Las
+				// dos tablas: borrando desde Presentaciones, la de Productos seguía
+				// mostrando el producto y su contador
 				if (onDeleted) {
 					await onDeleted();
 				} else {
-					await getProductVariants(Object.fromEntries(searchParams.entries()));
+					await Promise.all([
+						getProductVariants(Object.fromEntries(searchParams.entries())),
+						getProductsWithVariants(productsParamsFromSearch(searchParams))
+					]);
 				}
 			}
 		} catch (error) {

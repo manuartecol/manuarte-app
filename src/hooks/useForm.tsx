@@ -119,7 +119,6 @@ const useForm = () => {
 
 	const submitCreateProduct = async (
 		values: SubmitProductDto,
-		stockIds?: string[],
 		reloadTable?: () => Promise<void>
 	) => {
 		/**
@@ -135,17 +134,19 @@ const useForm = () => {
 
 		if (!validateUniqueProductVariantsName(values.productVariants)) {
 			return notification.error({
-				message:
-					'Estás intentando crear más de una presentación con el mismo nombre'
+				message: 'Estás intentando crear dos presentaciones iguales'
 			});
 		}
 
 		await handleSubmit({
 			serviceFn: productLibs.createProduct,
 			values,
+			// `addProduct` solo alimenta el selector de productos. Las tablas las pinta
+			// la recarga: meter ahí la fila a mano la duplicaba o la mostraba sin
+			// cumplir los filtros
 			onSuccess: async res => {
+				dispatch(addProduct(res.data.newProduct));
 				await reloadTable?.();
-				dispatch(addProduct({ newProduct: res.data.newProduct, stockIds }));
 			}
 		});
 	};
@@ -202,8 +203,19 @@ const useForm = () => {
 			serviceFn: valuesToUpdate =>
 				productLibs.updateProductVariant(valuesToUpdate, productVariantId),
 			values,
-			onSuccess: async () => {
-				dispatch(updateProductVariant({ id: productVariantId, ...values }));
+			onSuccess: async res => {
+				// La presentación que devuelve el backend, con el nombre compuesto y
+				// los ejes resueltos. Lo enviado no sirve: editando por ejes no lleva
+				// `name`, porque el nombre lo compone el backend
+				dispatch(
+					updateProductVariant({
+						productVariant: res.data.productVariant ?? {
+							id: productVariantId,
+							...values
+						},
+						stockIds: values.stockIds
+					})
+				);
 				await reloadTable?.();
 			}
 		});

@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { formatProductVariantState } from '../utils';
 
 const initialState = {
 	products: [] as Product[],
@@ -13,6 +12,12 @@ const initialState = {
 		totalPages: 1
 	} as Pagination,
 	productVariants: [] as ProductVariant[],
+	/**
+	 * Unidades, envases y tipos de atributo. Se piden una vez y se quedan: son
+	 * tres listas fijas mantenidas por seeder, sin administración en el panel, y
+	 * los tres formularios de presentación las necesitan a la vez
+	 */
+	variantCatalog: null as VariantCatalog | null,
 	productVariantsPagination: {
 		total: 0,
 		page: 1,
@@ -39,6 +44,10 @@ export const productSlice = createSlice({
 			};
 		},
 
+		setVariantCatalog: (state, action) => {
+			state.variantCatalog = action.payload;
+		},
+
 		setProductVariants: (state, action) => {
 			state.productVariants = action.payload.productVariants;
 			state.productVariantsPagination = {
@@ -49,20 +58,11 @@ export const productSlice = createSlice({
 			};
 		},
 
+		// Solo el selector de productos, y solo si ya se cargó: vacío significa que
+		// se pedirá entero la próxima vez que haga falta
 		addProduct: (state, action) => {
-			const { newProduct, stockIds } = action.payload;
-			const newProductVariants = formatProductVariantState(
-				newProduct,
-				stockIds
-			);
-
 			state.products =
-				state.products.length > 0 ? [newProduct, ...state.products] : [];
-			state.productVariants = [
-				...newProductVariants,
-				...state.productVariants
-			].slice(0, state.productVariantsPagination.pageSize);
-			state.productVariantsPagination.total += newProductVariants.length;
+				state.products.length > 0 ? [action.payload, ...state.products] : [];
 		},
 
 		updateProduct: (state, action) => {
@@ -117,21 +117,21 @@ export const productSlice = createSlice({
 			state.productVariantsPagination.total += 1;
 		},
 
+		/**
+		 * La presentación llega tal como la devolvió el backend, con sus ejes ya
+		 * resueltos. Antes se refrescaba con lo que el formulario había enviado, y
+		 * editando por ejes no envía `name` (lo compone el backend), así que la
+		 * fila se quedaba sin nombre; y los ejes nunca se actualizaban, así que una
+		 * segunda edición sin recarga por medio cargaba los viejos
+		 */
 		updateProductVariant: (state, action) => {
-			const productVariant = action.payload;
+			const { productVariant, stockIds } = action.payload;
 
-			const newData = state.productVariants.map(pv =>
+			state.productVariants = state.productVariants.map(pv =>
 				pv.id === productVariant.id
-					? {
-							...pv,
-							name: productVariant.name,
-							active: productVariant.active,
-							stockIds: productVariant.stockIds
-						}
+					? { ...pv, ...productVariant, stockIds }
 					: pv
 			);
-
-			state.productVariants = newData;
 		},
 
 		removeProduct: (state, action) => {
@@ -154,6 +154,7 @@ export const {
 	setProducts,
 	setProductsWithVariants,
 	setProductVariants,
+	setVariantCatalog,
 	addProduct,
 	updateProduct,
 	addProductVariant,
