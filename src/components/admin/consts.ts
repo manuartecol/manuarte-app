@@ -125,27 +125,33 @@ export const QUOTE_CALCULATIONS_INPUTS_PROPS = [
 	}
 ];
 
+/**
+ * El grupo de categorías cuyos productos se miden por capacidad del envase: una
+ * Jarra de Aluminio de 250 ml contiene 250 ml, no está hecha de 250 ml. Aquí
+ * solo cambia la etiqueta del campo; el flag que entra en la firma lo deduce el
+ * backend del mismo grupo
+ */
+export const CAPACITY_CATEGORY_GROUP = 'ENVASES';
+
+/**
+ * Sin el campo `name`: desde el punto 4 la presentación se captura por ejes
+ * (cantidad, unidad, envase, atributos) en `VariantAxesFields`, y el nombre lo
+ * compone el backend. Las dos cosas no se suman, la una reemplaza a la otra
+ */
 export const PRODUCT_VARIANT_PROPS = [
-	{
-		name: 'name',
-		label: 'Nombre',
-		placeholder: 'Unidad',
-		type: 'text',
-		width: '48%'
-	},
 	{
 		name: 'minQty',
 		label: 'Cant. Mínima',
 		placeholder: '9',
 		type: 'number',
-		width: '23%'
+		width: '140px'
 	},
 	{
 		name: 'maxQty',
 		label: 'Cant. Máxima',
 		placeholder: '9',
 		type: 'number',
-		width: '23%'
+		width: '140px'
 	},
 	{
 		name: 'pvpCop',

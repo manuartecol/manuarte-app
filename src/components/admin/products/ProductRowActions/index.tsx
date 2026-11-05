@@ -31,7 +31,9 @@ const ProductRowActions = ({ record }: { record: ProductWithVariants }) => {
 			content: ModalContent.productVariants,
 			dataToHandle: {
 				productId: record.id,
-				productName: record.name
+				productName: record.name,
+				// Para la etiqueta del campo de medida: Capacidad en los envases
+				productCategoryId: record.productCategoryId
 			}
 		});
 	};

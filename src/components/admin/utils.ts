@@ -158,3 +158,25 @@ export const selectFilterOption = (
 
 export const calculateTotalPayment = (payments: any[]) =>
 	payments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+/**
+ * Si la presentación tiene sus ejes guardados, o sigue siendo texto libre.
+ *
+ * Lo usan las dos tablas para decidir si pasan el nombre por
+ * `formatToTitleCase`. Un nombre compuesto por el backend ya viene bien escrito
+ * y titularlo lo estropea: la lista de unidades de ese helper no conoce `g`,
+ * `lt` ni la `x` del envase, así que "Bolsa x 50 g" salía "Bolsa X 50 G" y
+ * "1 lt" salía "1 Lt". El título hace falta en las de texto libre, que están
+ * escritas en mayúsculas, y deja de hacer falta en cuanto el backfill del punto
+ * 5 las estructure
+ */
+export const isStructuredVariant = (variant: {
+	unitId?: string | null;
+	containerId?: string | null;
+	attributes?: unknown[];
+}) =>
+	Boolean(
+		variant?.unitId ||
+			variant?.containerId ||
+			(variant?.attributes ?? []).length > 0
+	);

@@ -5,7 +5,83 @@ interface SubmitLoginDto {
 	password: string;
 }
 
-interface ProductVariant {
+type MeasurementDimension = 'mass' | 'volume' | 'count' | 'length';
+
+interface VariantUnit {
+	id: string;
+	code: string;
+	label: string;
+	// Solo las unidades que son palabras ("docenas", "galones"); null en las
+	// abreviaturas, porque "3 g" es correcto y "3 gs" no
+	labelPlural?: string | null;
+	name: string;
+	dimension: MeasurementDimension;
+	factorToBase: number | string;
+}
+
+interface VariantContainer {
+	id: string;
+	code: string;
+	label: string;
+}
+
+interface VariantAttributeType {
+	id: string;
+	code: string;
+	label: string;
+	// 'Rojo' con '{value}', '6 cavidades' con '{value} cavidades'
+	valueTemplate: string;
+	sortOrder: number;
+}
+
+/**
+ * Las tres listas fijas del formulario de presentaciones. No hay administración
+ * de unidades ni de envases: se mantienen por seeder y solo se leen
+ */
+interface VariantCatalog {
+	units: VariantUnit[];
+	containers: VariantContainer[];
+	attributeTypes: VariantAttributeType[];
+}
+
+/**
+ * Los ejes de una presentación tal como los manda el formulario. Sin
+ * `isCapacity`: lo deduce el backend del grupo de la categoría del producto
+ */
+interface VariantAxesDto {
+	quantityValue?: number | null;
+	unitId?: string | null;
+	containerId?: string | null;
+	attributes?: { attributeTypeId: string; value: string }[];
+}
+
+/**
+ * Un atributo tal como lo devuelve el backend en una presentación ya guardada
+ */
+interface VariantAttributeValue {
+	attributeTypeId: string;
+	code: string;
+	label: string;
+	value: string;
+}
+
+/**
+ * Los ejes resueltos que viajan en cada presentación. Todo en null mientras no
+ * esté estructurada, que es el caso de las 946 de hoy hasta el backfill
+ */
+interface VariantAxesValues {
+	quantityValue: number | null;
+	unitId: string | null;
+	unitCode?: string | null;
+	unitLabel?: string | null;
+	containerId: string | null;
+	containerLabel?: string | null;
+	isCapacity: boolean;
+	quantityBase: number | null;
+	attributes: VariantAttributeValue[];
+}
+
+interface ProductVariant extends Partial<VariantAxesValues> {
 	id: string;
 	name: string;
 	productId: string;
@@ -53,7 +129,10 @@ interface Product {
 }
 
 interface ProductVariantStockItem {
-	name: string;
+	// Opcional desde que la presentación se captura por ejes: con `axes` el
+	// nombre lo compone el backend y lo que venga aquí se ignora
+	name?: string;
+	axes?: VariantAxesDto;
 	costCop?: number;
 	costUsd?: number;
 	priceCop?: number;
@@ -66,7 +145,7 @@ interface ProductVariantStockItem {
  * Una presentación tal como llega anidada en su producto. No trae los campos
  * del producto que sí lleva `ProductVariant`, porque ahí ya los tiene el padre
  */
-interface NestedProductVariant {
+interface NestedProductVariant extends VariantAxesValues {
 	id: string;
 	vId: string;
 	name: string;
@@ -108,7 +187,10 @@ interface SubmitProductDto {
 // Lo que viaja al editar una presentación, que desde que el modal está separado
 // es una acción propia y no un añadido a la del producto
 interface SubmitProductVariantUpdateDto {
-	name: string;
+	// `name` solo para las presentaciones todavía sin estructurar. Con `axes` el
+	// backend compone el nombre e ignora este campo
+	name?: string;
+	axes?: VariantAxesDto;
 	active: boolean;
 	stockIds: string[];
 }
@@ -665,6 +747,7 @@ interface RootState {
 		productsPagination: Pagination;
 		productVariants: ProductVariant[];
 		productVariantsPagination: Pagination;
+		variantCatalog: VariantCatalog | null;
 	};
 	productCategory: {
 		productCategories: ProductCategory[];

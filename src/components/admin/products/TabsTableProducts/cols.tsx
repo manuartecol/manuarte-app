@@ -8,6 +8,7 @@ import {
 	MdRemoveCircle
 } from 'react-icons/md';
 import { formatToTitleCase } from '@/utils/formats';
+import { isStructuredVariant } from '../../utils';
 import ProductActions from '../ProductActions';
 import ProductCategoryActions from '../ProductCategoryActions';
 import ProductRowActions from '../ProductRowActions';
@@ -52,7 +53,10 @@ export const productVariantNestedColumns = (
 		title: 'PRESENTACIÓN',
 		dataIndex: 'name',
 		key: 'name',
-		render: (value: string) => formatToTitleCase(value),
+		// Las estructuradas van tal cual: el backend ya las compone bien escritas,
+		// y titularlas estropea "Bolsa x 50 g" y "1 lt"
+		render: (value: string, record) =>
+			isStructuredVariant(record) ? value : formatToTitleCase(value),
 		width: 220
 	},
 	{
@@ -95,7 +99,13 @@ export const productVariantNestedColumns = (
 		className: 'actions',
 		render: (_, record) => (
 			<ProductActions
-				record={{ ...record, productName: product.name }}
+				record={{
+					...record,
+					productName: product.name,
+					// La categoría del producto: el formulario de edición la usa para
+					// decidir si el campo se llama Cantidad o Capacidad
+					productCategoryId: product.productCategoryId
+				}}
 				onDeleted={onDeleted}
 			/>
 		),
@@ -252,7 +262,8 @@ const ProductCols = ({
 			key: 'name',
 			filteredValue: tableFilters?.name || null,
 			...getColumnSearchProps('name'),
-			render: value => formatToTitleCase(value),
+			render: (value, record) =>
+				isStructuredVariant(record) ? value : formatToTitleCase(value),
 			width: 140
 		},
 		{

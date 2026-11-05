@@ -1,19 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Switch } from 'antd';
+import { Button, Form, Input, Switch } from 'antd';
+import { IoArrowBack, IoArrowForward } from 'react-icons/io5';
 import { useSearchParams } from 'next/navigation';
 import { useWatch } from 'antd/es/form/Form';
+import { useSelector } from 'react-redux';
 import FormButtons from '../../common/ui/FormButtons';
 import SelectStocks from '../SelectStocks';
+import VariantAxesFields from '../VariantAxesFields';
+import { previewFromAxes } from '../VariantAxesFields/composeVariantName';
 import useForm from '@/hooks/useForm';
 import useProductServices from '@/services/product';
 import { useModalStore } from '@/stores/modalStore';
+import { CAPACITY_CATEGORY_GROUP } from '../../consts';
 import { productsParamsFromSearch } from '../../utils';
 
 /**
- * Editar una presentación: nombre, estado y bodegas donde se ofrece. Nada del
- * producto, que tiene su propio formulario. Antes las dos cosas vivían en el
- * mismo modal detrás de un switch, y la presentación viajaba al backend dentro
- * del cuerpo del producto
+ * Editar una presentación: medida, estado y bodegas donde se ofrece. Nada del
+ * producto, que tiene su propio formulario.
+ *
+ * Dos modos, nunca los dos a la vez. Si la presentación ya está estructurada se
+ * edita por ejes y el nombre es la vista previa, no un campo. Si todavía es
+ * texto libre, que es el caso de las 946 de hoy hasta el backfill, se edita su
+ * nombre tal cual, con un enlace para estructurarla: forzar los ejes aquí
+ * renombraría de golpe presentaciones que el cliente escribió a mano, y eso es
+ * el backfill del punto 5, no una edición cualquiera
  */
 const ProductVariantEditForm = () => {
 	const { form, isLoading, submitUpdateProductVariant } = useForm();
@@ -21,13 +31,61 @@ const ProductVariantEditForm = () => {
 	const [active, setActive] = useState<boolean>(dataToHandle?.active ?? false);
 	const [, setIsQuitoSelected] = useState(true);
 	const searchParams = useSearchParams();
-	const { getProductVariants, getProductsWithVariants } = useProductServices();
+	const { getProductVariants, getProductsWithVariants, getVariantCatalog } =
+		useProductServices();
+	const { productCategories } = useSelector(
+		(state: RootState) => state.productCategory
+	);
+	const { variantCatalog } = useSelector((state: RootState) => state.product);
+	const [catalogFailed, setCatalogFailed] = useState(false);
 	const stockIdsValues = useWatch('stockIds', form);
 
+	/**
+	 * Ruta estática: en este formulario `axes` cuelga de la raíz. Con `preserve`
+	 * porque `useWatch` solo devuelve los campos montados, y envase y atributos
+	 * deciden su visibilidad a partir de esta misma observación: una presentación
+	 * guardada con envase abría sin él, y el nombre prometido tampoco lo llevaba
+	 */
+	const axes = useWatch('axes', { form, preserve: true }) as
+		| VariantAxesDto
+		| undefined;
+	const namePreview = previewFromAxes(axes, variantCatalog);
+
+	// Ya estructurada si tiene alguno de los ejes guardados
+	const isStructured = Boolean(
+		dataToHandle?.unitId ||
+			dataToHandle?.containerId ||
+			(dataToHandle?.attributes ?? []).length > 0
+	);
+	const [useAxes, setUseAxes] = useState(isStructured);
+
+	const isCapacityCategory =
+		productCategories?.find(pCat => pCat.id === dataToHandle?.productCategoryId)
+			?.groupName === CAPACITY_CATEGORY_GROUP;
+
 	useEffect(() => {
+		getVariantCatalog().then(loaded => setCatalogFailed(!loaded));
+
 		form.setFieldsValue({
 			name: dataToHandle?.name,
-			stockIds: dataToHandle?.stockIds || []
+			stockIds: dataToHandle?.stockIds || [],
+			// Los ejes guardados, para que el formulario abra con lo que ya tiene y
+			// no con los selects vacíos
+			...(isStructured
+				? {
+						axes: {
+							quantityValue: dataToHandle?.quantityValue ?? undefined,
+							unitId: dataToHandle?.unitId ?? undefined,
+							containerId: dataToHandle?.containerId ?? undefined,
+							attributes: (dataToHandle?.attributes ?? []).map(
+								(attribute: VariantAttributeValue) => ({
+									attributeTypeId: attribute.attributeTypeId,
+									value: attribute.value
+								})
+							)
+						}
+					}
+				: {})
 		});
 	}, []);
 
@@ -40,10 +98,16 @@ const ProductVariantEditForm = () => {
 		]);
 	};
 
-	const onSubmit = (values: { name: string; stockIds?: string[] }) => {
+	const onSubmit = (values: {
+		name?: string;
+		stockIds?: string[];
+		axes?: VariantAxesDto;
+	}) => {
 		submitUpdateProductVariant(
 			{
-				name: values.name,
+				// Con ejes el nombre no se manda: lo compone el backend, y mandarlo
+				// sería darle dos verdades para el mismo dato
+				...(useAxes ? { axes: values.axes } : { name: values.name }),
 				active,
 				stockIds: values.stockIds || []
 			},
@@ -60,31 +124,24 @@ const ProductVariantEditForm = () => {
 			clearOnDestroy
 			onFinish={onSubmit}
 		>
-			{dataToHandle?.productName ? (
-				<p className='mb-4 text-gray-500'>
-					Producto:{' '}
-					<span className='font-semibold text-gray-700'>
-						{dataToHandle.productName}
-					</span>
+			{/*
+			 * El estado va en la cabecera, junto al producto, y no en una columna al
+			 * lado de los campos: esa columna les quitaba la mitad del ancho y partía
+			 * cantidad, unidad y envase en varias filas
+			 */}
+			<div className='mb-4 flex items-center justify-between gap-4'>
+				<p className='text-gray-500'>
+					{dataToHandle?.productName ? (
+						<>
+							Producto:{' '}
+							<span className='font-semibold text-gray-700'>
+								{dataToHandle.productName}
+							</span>
+						</>
+					) : null}
 				</p>
-			) : null}
 
-			<div className='flex items-center gap-4'>
-				<Form.Item
-					name='name'
-					label='Presentación'
-					rules={[
-						{
-							required: true,
-							message: 'El nombre de la presentación es requerido'
-						}
-					]}
-					className='flex-1'
-				>
-					<Input placeholder='Ingresa el nombre de la presentación' />
-				</Form.Item>
-
-				<div className='flex-1 flex items-center gap-2 my-6 px-2'>
+				<div className='flex shrink-0 items-center gap-2'>
 					<Switch
 						onChange={checked => setActive(checked)}
 						id='active'
@@ -94,6 +151,81 @@ const ProductVariantEditForm = () => {
 					<label htmlFor='active'>{active ? 'Activa' : 'Inactiva'}</label>
 				</div>
 			</div>
+
+			{useAxes ? (
+				<>
+					{/*
+					 * El nombre que va a quedar, no el que ya hay: con los ejes vacíos no
+					 * se repite el guardado, porque se leería como el resultado de lo que
+					 * está en pantalla
+					 */}
+					<p className='mb-2 text-gray-500'>
+						Presentación:{' '}
+						{namePreview ? (
+							<span className='font-semibold text-blue-500'>{namePreview}</span>
+						) : (
+							<span className='italic'>elige una medida</span>
+						)}
+					</p>
+					<VariantAxesFields
+						form={form}
+						axes={axes}
+						isCapacity={isCapacityCategory}
+						catalogFailed={catalogFailed}
+					/>
+					{!isStructured ? (
+						<div className='mb-4'>
+							<Button
+								type='link'
+								size='small'
+								style={{ padding: 0 }}
+								icon={<IoArrowBack size={14} style={{ display: 'block' }} />}
+								onClick={() => setUseAxes(false)}
+							>
+								Volver al nombre escrito
+							</Button>
+						</div>
+					) : null}
+				</>
+			) : (
+				<>
+					<Form.Item
+						name='name'
+						label='Presentación'
+						rules={[
+							{
+								required: true,
+								message: 'El nombre de la presentación es requerido'
+							}
+						]}
+						// En `style`: antd pisa las clases de margen en `.ant-form-item`. Los
+						// 16 son los que separan "Volver al nombre escrito" de lo de arriba
+						style={{ marginBottom: 16 }}
+					>
+						<Input placeholder='Ingresa el nombre de la presentación' />
+					</Form.Item>
+					<div className='mb-4'>
+						<Button
+							type='link'
+							size='small'
+							style={{ padding: 0 }}
+							icon={<IoArrowForward size={14} style={{ display: 'block' }} />}
+							iconPosition='end'
+							onClick={() => setUseAxes(true)}
+						>
+							Estructurar por cantidad y unidad
+						</Button>
+					</div>
+				</>
+			)}
+
+			{useAxes && !isStructured ? (
+				<p className='mb-4 text-xs text-amber-600'>
+					Al guardar, el nombre pasa a ser el compuesto y deja de ser &quot;
+					{dataToHandle?.name}&quot;. Las facturas y cotizaciones ya emitidas no
+					cambian, porque guardan el nombre con el que se vendieron.
+				</p>
+			) : null}
 
 			<SelectStocks
 				form={form}
