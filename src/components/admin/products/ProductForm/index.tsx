@@ -43,15 +43,17 @@ const ProductForm = () => {
 	 * cumplir el de categoría o nombre se quedaba, y el total de la paginación no
 	 * cambiaba
 	 */
-	const reloadTables = async () => {
+	const reloadTables = async (params: URLSearchParams = searchParams) => {
 		await Promise.all([
-			getProductVariants(Object.fromEntries(searchParams.entries())),
-			getProductsWithVariants(productsParamsFromSearch(searchParams))
+			getProductVariants(Object.fromEntries(params.entries())),
+			getProductsWithVariants(productsParamsFromSearch(params))
 		]);
 	};
 
 	/**
-	 * Tras crear, la tabla se queda filtrada por el producto nuevo. Ordena por
+	 * Tras crear o renombrar, la tabla se queda filtrada por ese producto. Con el
+	 * filtro anterior, renombrar "Test" a "Producto prueba" dejaba la tabla vacía,
+	 * y a "Test Updated" lo dejaba mezclado con los demás "Test". Ordena por
 	 * nombre y pagina de 30, así que una fila recién creada puede caer a veinte
 	 * páginas de distancia y parecer que no se guardó. Se limpian todos los demás
 	 * filtros de las dos tablas porque el nuevo puede no cumplirlos y seguiría
@@ -64,7 +66,7 @@ const ProductForm = () => {
 	 * el filtro la URL no cambiaba, no había consulta, y el producto recién creado
 	 * no aparecía en ninguna de las dos pestañas
 	 */
-	const focusOnCreatedProduct = async (name: string) => {
+	const focusOnProduct = async (name: string) => {
 		const params = new URLSearchParams(searchParams.toString());
 
 		params.set('productName', name);
@@ -79,12 +81,7 @@ const ProductForm = () => {
 
 		router.replace(`?${params.toString()}`);
 
-		const nextParams = new URLSearchParams(params);
-
-		await Promise.all([
-			getProductVariants(Object.fromEntries(nextParams.entries())),
-			getProductsWithVariants(productsParamsFromSearch(nextParams))
-		]);
+		await reloadTables(params);
 	};
 
 	useEffect(() => {
@@ -124,11 +121,13 @@ const ProductForm = () => {
 				});
 
 			submitCreateProduct({ ...cleanedValues, stocks }, async () =>
-				focusOnCreatedProduct(values.name.trim())
+				focusOnProduct(values.name.trim())
 			);
 
 			return;
 		}
+
+		const newName = values.name.trim();
 
 		submitUpdateProduct(
 			{
@@ -140,7 +139,12 @@ const ProductForm = () => {
 				)?.name
 			},
 			dataToHandle.productId,
-			reloadTables
+			// Sin renombrar se queda todo como estaba: quien edita varios productos
+			// de una categoría filtrada no debe perder ese filtro en cada guardado
+			() =>
+				newName === dataToHandle.productName
+					? reloadTables()
+					: focusOnProduct(newName)
 		);
 	};
 
