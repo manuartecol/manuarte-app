@@ -92,6 +92,7 @@ const SelectStocks = ({
 
 	const mainStockId = shops.find(sh => sh.mainStock)?.stockId;
 	const quitoStockId = shops.find(sh => sh.slug === 'manuarte-quito')?.stockId;
+	const optionsLoaded = Boolean(stockOptions?.length);
 
 	return (
 		<Form.Item
@@ -133,7 +134,12 @@ const SelectStocks = ({
 				 */
 				showSearch
 				mode='multiple'
+				loading={!optionsLoaded}
 				tagRender={({ label, value, closable, onClose }) => {
+					// Los valores pueden llegar antes que las opciones, y sin opción
+					// antd pinta el id en la etiqueta
+					if (!optionsLoaded) return <></>;
+
 					const isFixed = value === mainStockId && !canRemoveMainStock;
 
 					return (

@@ -41,12 +41,14 @@ const GenerateFinancialReportButton = ({ shopSlug }: { shopSlug: string }) => {
 			const sufix = 'reporte-flujo-financiero';
 			const shopName = shopSlug.toUpperCase().replace('-', ' ');
 
+			// Contra null y no por veracidad: una caja o una alcancía en 0 son un
+			// reporte válido, y el botón no hacía nada en esos días
 			if (
 				cashIncomes &&
 				cashExpenses &&
 				bankData &&
-				finalCash &&
-				piggyBankAmount
+				finalCash != null &&
+				piggyBankAmount != null
 			) {
 				const title = `Reporte - Flujo Financiero ${shopName}`;
 
