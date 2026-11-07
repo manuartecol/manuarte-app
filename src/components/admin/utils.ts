@@ -142,14 +142,21 @@ export const productsParamsFromSearch = (searchParams: URLSearchParams) => ({
 	productCategoryName: searchParams.get('productCategoryName') ?? undefined
 });
 
+// Sin tildes ni mayúsculas: buscar "velon" tiene que encontrar "Velón"
+const normalizeSearch = (text: string) =>
+	text
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toLowerCase();
+
 export const selectFilterOption = (
 	input: string,
 	option: { value: string; label: string | null } | undefined
 ) => {
 	try {
-		const label = (option?.label as string)?.toLowerCase();
+		const label = normalizeSearch(option?.label as string);
 
-		return label?.includes(input.toLowerCase());
+		return label?.includes(normalizeSearch(input));
 	} catch (error) {
 		console.error(error);
 		return false;
