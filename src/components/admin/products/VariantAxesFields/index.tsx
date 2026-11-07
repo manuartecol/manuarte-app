@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import {
 	Alert,
 	Button,
@@ -99,6 +99,12 @@ const VariantAxesFields = ({
 			label: container.label
 		})
 	);
+
+	/**
+	 * Sin opción para el valor, antd pinta el id. Pasa mientras llega el catálogo,
+	 * y es mejor un campo vacío un instante que un id
+	 */
+	const hideUnknownValue = ({ label }: { label?: ReactNode }) => label ?? '';
 
 	/**
 	 * Cada fila ofrece los tipos que no estén ya usados en otra. El UNIQUE de
@@ -262,6 +268,7 @@ const VariantAxesFields = ({
 						showSearch
 						filterOption={selectFilterOption}
 						options={unitOptions}
+						labelRender={hideUnknownValue}
 						onChange={value => {
 							const selected = variantCatalog?.units.find(u => u.id === value);
 
@@ -295,6 +302,7 @@ const VariantAxesFields = ({
 								showSearch
 								filterOption={selectFilterOption}
 								options={containerOptions}
+								labelRender={hideUnknownValue}
 							/>
 						</Form.Item>
 						{removeButton('Quitar envase', clearContainer)}
@@ -317,6 +325,7 @@ const VariantAxesFields = ({
 										<Select
 											placeholder='Selecciona'
 											options={attributeTypeOptionsFor(attributeName)}
+											labelRender={hideUnknownValue}
 										/>
 									</Form.Item>
 

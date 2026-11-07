@@ -94,12 +94,15 @@ const useProductServices = () => {
 	 * administración en el panel, así que volver a pedirlas en cada apertura de
 	 * modal era una petición por nada
 	 */
+	/**
+	 * Se pide cada vez que abre un formulario, aunque ya haya una copia: una
+	 * pestaña abierta antes de agregar una unidad no la ofrecía, y una presentación
+	 * con esa unidad mostraba su id. Si falla, la copia que haya sigue sirviendo
+	 */
 	const getVariantCatalog = async () => {
-		if (variantCatalog) return true;
-
 		try {
 			const data = await productLibs.getVariantCatalog();
-			if (!Array.isArray(data?.units)) return false;
+			if (!Array.isArray(data?.units)) return Boolean(variantCatalog);
 
 			dispatch(setVariantCatalog(data));
 
@@ -107,7 +110,7 @@ const useProductServices = () => {
 		} catch (error) {
 			console.error(error);
 
-			return false;
+			return Boolean(variantCatalog);
 		}
 	};
 

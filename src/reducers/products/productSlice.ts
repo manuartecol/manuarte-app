@@ -13,9 +13,9 @@ const initialState = {
 	} as Pagination,
 	productVariants: [] as ProductVariant[],
 	/**
-	 * Unidades, envases y tipos de atributo. Se piden una vez y se quedan: son
-	 * tres listas fijas mantenidas por seeder, sin administración en el panel, y
-	 * los tres formularios de presentación las necesitan a la vez
+	 * Unidades, envases y tipos de atributo. Son tres listas fijas mantenidas por
+	 * seeder, sin administración en el panel, y los tres formularios de
+	 * presentación las necesitan a la vez. Se refrescan al abrir cada formulario
 	 */
 	variantCatalog: null as VariantCatalog | null,
 	productVariantsPagination: {
