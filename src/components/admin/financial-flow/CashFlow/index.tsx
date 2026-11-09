@@ -22,9 +22,17 @@ const CashFlow = ({ shopId, isLoading, onChangeDate, selectedDate }: Props) => {
 	const { currentCashSession } = useSelector(
 		(state: RootState) => state.financialFlow
 	);
-	const { status, reason, balance, accumulatedDifference, data } =
-		currentCashSession ?? {};
+	const { status, reason, balance, data } = currentCashSession ?? {};
 	const { cashMovementsColumns } = CashMovementCols();
+
+	// Los montos llegan de la base como texto ("-53127.00"), DECIMAL(15, 2).
+	const accumulatedAmount = Number(data?.accumulatedDifference ?? 0) || 0;
+	const accumulatedLabel =
+		accumulatedAmount < 0
+			? 'Faltante acumulado'
+			: accumulatedAmount > 0
+				? 'Sobrante acumulado'
+				: 'Caja cuadrada';
 
 	return (
 		<div className='space-y-4'>
@@ -92,30 +100,47 @@ const CashFlow = ({ shopId, isLoading, onChangeDate, selectedDate }: Props) => {
 										)
 									)}
 								</h2>
-
-								<h2 className='font-bold'>
-									Diferencia acumulada:{' '}
-									{isLoading ? (
-										<Skeleton.Button
-											active
-											style={{
-												width: 100,
-												height: 20,
-												outline: '1px solid transparent'
-											}}
-										/>
-									) : (
-										accumulatedDifference && (
-											<span
-												className={`${accumulatedDifference >= 0 ? 'text-[#10b981]' : 'text-[#E53535]'}`}
-											>
-												{formatCurrency(accumulatedDifference ?? 0)}
-											</span>
-										)
-									)}
-								</h2>
 							</div>
 						)}
+
+						{/* La acumulada se toma de la sesión mostrada, no de la de hoy: al
+						    elegir otra fecha solo se reemplaza `data`. Con la caja abierta
+						    llega hasta la apertura; cerrada, incluye el cierre del día. */}
+						<div>
+							{isLoading ? (
+								<Skeleton.Button
+									active
+									style={{
+										width: 160,
+										height: 20,
+										outline: '1px solid transparent'
+									}}
+								/>
+							) : (
+								<>
+									<h2 className='font-bold'>
+										{accumulatedLabel}
+										{accumulatedAmount !== 0 && (
+											<>
+												:{' '}
+												<span
+													className={
+														accumulatedAmount < 0
+															? 'text-[#E53535]'
+															: 'text-[#10b981]'
+													}
+												>
+													{formatCurrency(Math.abs(accumulatedAmount))}
+												</span>
+											</>
+										)}
+									</h2>
+									<p className='text-[13px] text-gray-500'>
+										{`${data?.closedAt ? 'Al cierre' : 'A la apertura'} del ${formatDate(data?.openedAt)}`}
+									</p>
+								</>
+							)}
+						</div>
 
 						<div className='space-y-2'>
 							{data?.openedAt && (

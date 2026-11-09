@@ -642,6 +642,7 @@ interface CashSession {
 	closingAmount: number | null;
 	declaredClosingAmount: number | null;
 	closingDifference: number | null;
+	accumulatedDifference: number;
 	piggyBankAmount: number | null;
 	closedBy: string | null;
 	openingComments: string | null;
