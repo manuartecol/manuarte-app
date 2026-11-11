@@ -57,7 +57,7 @@ const ProductVariantForm = () => {
 		(dataToHandle?.productCategoryId as string | undefined);
 	const isCapacityCategory =
 		productCategories?.find(pCat => pCat.id === productCategoryId)
-			?.groupName === CAPACITY_CATEGORY_GROUP;
+			?.groupName?.toUpperCase() === CAPACITY_CATEGORY_GROUP;
 	// Abierto desde la fila de un producto: ese producto ya está decidido
 	const fixedProduct = dataToHandle?.productId
 		? { id: dataToHandle.productId as string, name: dataToHandle.productName }

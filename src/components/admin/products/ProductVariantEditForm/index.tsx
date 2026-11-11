@@ -57,7 +57,7 @@ const ProductVariantEditForm = () => {
 
 	const isCapacityCategory =
 		productCategories?.find(pCat => pCat.id === dataToHandle?.productCategoryId)
-			?.groupName === CAPACITY_CATEGORY_GROUP;
+			?.groupName?.toUpperCase() === CAPACITY_CATEGORY_GROUP;
 
 	useEffect(() => {
 		getVariantCatalog().then(loaded => setCatalogFailed(!loaded));
