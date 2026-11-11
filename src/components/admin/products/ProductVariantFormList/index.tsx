@@ -42,7 +42,8 @@ const ProductVariantFormList = ({
 	isCapacity = false,
 	catalogFailed = false,
 	activeKey,
-	onActiveKeyChange
+	onActiveKeyChange,
+	suggestions = []
 }: {
 	form: FormInstance;
 	isUpdating: boolean;
@@ -53,6 +54,8 @@ const ProductVariantFormList = ({
 	// que abrir el de la presentación con el error, y eso lo sabe el `Form`
 	activeKey: string[];
 	onActiveKeyChange: (keys: string[]) => void;
+	// Medidas más usadas en la categoría; un clic crea la presentación con ellas
+	suggestions?: VariantSuggestion[];
 }) => {
 	const { variantCatalog } = useSelector((state: RootState) => state.product);
 
@@ -128,6 +131,50 @@ const ProductVariantFormList = ({
 		// La copia se abre y las demás se plegan: el siguiente gesto es cambiarle
 		// lo que la distingue
 		onActiveKeyChange([String(index + 1)]);
+	};
+
+	const sameMeasure = (
+		axes: VariantAxesDto | undefined,
+		s: VariantSuggestion
+	) =>
+		(axes?.unitId ?? null) === s.unitId &&
+		(axes?.containerId ?? null) === s.containerId &&
+		(axes?.quantityValue ?? null) === s.quantityValue;
+
+	// Las que ya están en el formulario no se vuelven a ofrecer
+	const pendingSuggestions = suggestions.filter(
+		suggestion => !variants?.some(v => sameMeasure(v?.axes, suggestion))
+	);
+
+	/**
+	 * Llena la primera presentación sin medida, que es la que el formulario abre
+	 * vacía, y si no hay ninguna agrega otra. Solo la medida: precios y límites
+	 * cambian de un producto a otro
+	 */
+	const applySuggestion = (
+		add: (value?: unknown, index?: number) => void,
+		suggestion: VariantSuggestion
+	) => {
+		const axes = {
+			quantityValue: suggestion.quantityValue ?? undefined,
+			unitId: suggestion.unitId ?? undefined,
+			containerId: suggestion.containerId ?? undefined
+		};
+		const emptyIndex = (variants ?? []).findIndex(
+			v =>
+				!v?.axes?.unitId &&
+				!v?.axes?.containerId &&
+				!(v?.axes?.attributes ?? []).length
+		);
+
+		if (emptyIndex >= 0) {
+			form.setFieldValue(['productVariants', emptyIndex, 'axes'], axes);
+			onActiveKeyChange([String(emptyIndex)]);
+			return;
+		}
+
+		add({ axes });
+		onActiveKeyChange([String(variants?.length ?? 0)]);
 	};
 
 	// Lo que se lee de un panel cerrado, para no tener que abrirlo
@@ -356,6 +403,31 @@ const ProductVariantFormList = ({
 							>
 								<span>Presentación</span> <AiOutlineAppstore size={20} />
 							</Button>
+							{pendingSuggestions.length > 0 ? (
+								<div className='mt-3 flex flex-wrap items-center gap-2'>
+									<span className='text-xs text-gray-500'>
+										Más usadas en la categoría:
+									</span>
+									{pendingSuggestions.map(suggestion => (
+										// Abajo: arriba se encima al botón de agregar presentación
+										<Tooltip
+											key={suggestion.name}
+											placement='bottom'
+											title={`La usan ${suggestion.products} ${
+												suggestion.products === 1 ? 'producto' : 'productos'
+											}`}
+										>
+											<Button
+												size='small'
+												icon={<IoAdd size={14} style={{ display: 'block' }} />}
+												onClick={() => applySuggestion(add, suggestion)}
+											>
+												{suggestion.name}
+											</Button>
+										</Tooltip>
+									))}
+								</div>
+							) : null}
 							<Form.ErrorList errors={errors} />
 						</Form.Item>
 					) : null}

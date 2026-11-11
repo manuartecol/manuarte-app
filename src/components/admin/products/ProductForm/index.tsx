@@ -30,9 +30,32 @@ const ProductForm = () => {
 	const [isQuitoSelected, setIsQuitoSelected] = useState(true);
 	const searchParams = useSearchParams();
 	const router = useRouter();
-	const { getProductVariants, getProductsWithVariants, getVariantCatalog } =
-		useProductServices();
+	const {
+		getProductVariants,
+		getProductsWithVariants,
+		getVariantCatalog,
+		getVariantSuggestions
+	} = useProductServices();
 	const productCategoryId = useWatch('productCategoryId', form);
+	const [suggestions, setSuggestions] = useState<VariantSuggestion[]>([]);
+
+	// Las medidas más usadas de la categoría elegida, solo al crear
+	useEffect(() => {
+		if (isUpdating || !productCategoryId) {
+			setSuggestions([]);
+			return;
+		}
+
+		let current = true;
+		getVariantSuggestions(productCategoryId).then(data => {
+			// Otra categoría elegida mientras llegaba la respuesta: se descarta
+			if (current) setSuggestions(data);
+		});
+
+		return () => {
+			current = false;
+		};
+	}, [productCategoryId]);
 	const [catalogFailed, setCatalogFailed] = useState(false);
 	// La primera presentación abierta; las demás se plegan
 	const [openVariants, setOpenVariants] = useState<string[]>(['0']);
@@ -163,7 +186,7 @@ const ProductForm = () => {
 	 */
 	const isCapacityCategory =
 		productCategories?.find(pCat => pCat.id === productCategoryId)
-			?.groupName === CAPACITY_CATEGORY_GROUP;
+			?.groupName?.toUpperCase() === CAPACITY_CATEGORY_GROUP;
 
 	return (
 		<Form
@@ -269,6 +292,7 @@ const ProductForm = () => {
 							catalogFailed={catalogFailed}
 							activeKey={openVariants}
 							onActiveKeyChange={setOpenVariants}
+							suggestions={suggestions}
 						/>
 					</Form.Item>
 				</>

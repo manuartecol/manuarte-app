@@ -82,6 +82,17 @@ export const productLibs = {
 	// Las listas fijas del formulario de presentaciones: unidades, envases y
 	// tipos de atributo. El error sube porque sin catálogo el formulario no se
 	// puede capturar, y hay que decirlo en vez de mostrar selects vacíos
+	getVariantSuggestions: async (
+		productCategoryId: string
+	): Promise<VariantSuggestion[]> => {
+		const res = await axiosPrivate.get<VariantSuggestion[]>(
+			`${ENV.API.PRODUCT_VARIANTS}/suggestions`,
+			{ params: { productCategoryId } }
+		);
+
+		return res.data;
+	},
+
 	getVariantCatalog: async (): Promise<VariantCatalog> => {
 		const res = await axiosPrivate.get<VariantCatalog>(
 			`${ENV.API.PRODUCT_VARIANTS}/catalog`

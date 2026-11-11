@@ -114,8 +114,20 @@ const useProductServices = () => {
 		}
 	};
 
+	// Sin Redux: dependen de la categoría elegida y solo las usa el formulario
+	const getVariantSuggestions = async (productCategoryId: string) => {
+		try {
+			return await productLibs.getVariantSuggestions(productCategoryId);
+		} catch (error) {
+			console.error(error);
+
+			return [];
+		}
+	};
+
 	return {
 		getProducts,
+		getVariantSuggestions,
 		getProductsWithVariants,
 		getProductVariants,
 		getProductCategories,

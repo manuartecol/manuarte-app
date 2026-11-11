@@ -38,6 +38,15 @@ interface VariantAttributeType {
  * Las tres listas fijas del formulario de presentaciones. No hay administración
  * de unidades ni de envases: se mantienen por seeder y solo se leen
  */
+// Una medida usada en la categoría, para ofrecerla al crear un producto
+interface VariantSuggestion {
+	quantityValue: number | null;
+	unitId: string | null;
+	containerId: string | null;
+	name: string;
+	products: number;
+}
+
 interface VariantCatalog {
 	units: VariantUnit[];
 	containers: VariantContainer[];
